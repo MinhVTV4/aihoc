@@ -614,63 +614,71 @@
                         return;
                     }
 
-                    const arrayBuffer = fileData.arrayBuffer; // Retrieve the stored ArrayBuffer
+                    // Retrieve the stored Blob
+                    const fileBlob = fileData.fileBlob; 
                     const fileName = fileData.fileName;
                     const fileType = fileData.fileType;
-                    
-                    let plainTextContent = '';
-                    let convertedHtmlForDocx = '';
 
-                    if (fileType === 'application/pdf') {
-                        if (typeof pdfjsLib === 'undefined') {
-                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
-                            updateStatus('error-text', `Lỗi: Thư viện PDF.js chưa được tải.`);
-                        } else {
-                            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                            pdfDocument = await loadingTask.promise;
-                            totalPages = pdfDocument.numPages;
-                            currentPageNum = 1; 
+                    // Read the Blob back into an ArrayBuffer for PDF.js/Mammoth.js
+                    const blobReader = new FileReader();
+                    blobReader.onload = async (e) => {
+                        const arrayBuffer = e.target.result;
+                        let plainTextContent = '';
+                        let convertedHtmlForDocx = '';
 
-                            let fullPdfText = [];
-                            for (let i = 1; i <= totalPages; i++) {
-                                const page = await pdfDocument.getPage(i);
-                                const textContent = await page.getTextContent();
-                                const pageText = textContent.items.map(item => item.str).join(' ');
-                                fullPdfText.push(pageText);
+                        if (fileType === 'application/pdf') {
+                            if (typeof pdfjsLib === 'undefined') {
+                                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
+                                updateStatus('error-text', `Lỗi: Thư viện PDF.js chưa được tải.`);
+                            } else {
+                                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                                pdfDocument = await loadingTask.promise;
+                                totalPages = pdfDocument.numPages;
+                                currentPageNum = 1; 
+
+                                let fullPdfText = [];
+                                for (let i = 1; i <= totalPages; i++) {
+                                    const page = await pdfDocument.getPage(i);
+                                    const textContent = await page.getTextContent();
+                                    const pageText = textContent.items.map(item => item.str).join(' ');
+                                    fullPdfText.push(pageText);
+                                }
+                                plainTextContent = fullPdfText.join('\n\n');
+
+                                renderPdfPage(currentPageNum);
+                                pdfPageControls.classList.remove('hidden-content');
+                                updateStatus('success-text', `Đã tải file PDF "${fileName}" từ IndexedDB và hiển thị.`);
                             }
-                            plainTextContent = fullPdfText.join('\n\n');
-
-                            renderPdfPage(currentPageNum);
-                            pdfPageControls.classList.remove('hidden-content');
-                            updateStatus('success-text', `Đã tải file PDF "${fileName}" từ IndexedDB và hiển thị.`);
-                        }
-                    } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                        if (typeof window.mammoth === 'undefined') {
-                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
-                            updateStatus('error-text', `Lỗi: Thư viện mammoth.js chưa được tải.`);
-                        } else {
-                            try {
-                                const result = await window.mammoth.convertToHtml({arrayBuffer: arrayBuffer});
-                                convertedHtmlForDocx = result.value;
-                                plainTextContent = convertedHtmlForDocx.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-                                documentViewer.innerHTML = convertedHtmlForDocx;
-                                updateStatus('success-text', `Đã tải file DOCX "${fileName}" từ IndexedDB và hiển thị.`);
-                            } catch (mammothError) {
-                                console.error("Lỗi khi chuyển đổi DOCX từ IndexedDB:", mammothError);
-                                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}</p>`;
-                                plainTextContent = `Lỗi khi xử lý DOCX từ IndexedDB.`;
-                                updateStatus('error-text', `Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}.`);
+                        } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                            if (typeof window.mammoth === 'undefined') {
+                                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
+                                updateStatus('error-text', `Lỗi: Thư viện mammoth.js chưa được tải.`);
+                            } else {
+                                try {
+                                    const result = await window.mammoth.convertToHtml({arrayBuffer: arrayBuffer});
+                                    convertedHtmlForDocx = result.value;
+                                    plainTextContent = convertedHtmlForDocx.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                                    documentViewer.innerHTML = convertedHtmlForDocx;
+                                    updateStatus('success-text', `Đã tải file DOCX "${fileName}" từ IndexedDB và hiển thị.`);
+                                } catch (mammothError) {
+                                    console.error("Lỗi khi chuyển đổi DOCX từ IndexedDB:", mammothError);
+                                    documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}</p>`;
+                                    plainTextContent = `Lỗi khi xử lý DOCX từ IndexedDB.`;
+                                    updateStatus('error-text', `Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}.`);
+                                }
                             }
+                        } else {
+                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${fileType}</p>`;
+                            plainTextContent = `Định dạng file không được hỗ trợ.`;
+                            updateStatus('error-text', `Lỗi: Định dạng file không được hỗ trợ "${fileType}".`);
                         }
-                    } else {
-                        documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${fileType}</p>`;
-                        plainTextContent = `Định dạng file không được hỗ trợ.`;
-                        updateStatus('error-text', `Lỗi: Định dạng file không được hỗ trợ "${fileType}".`);
-                    }
-                    
-                    currentDocumentTextContent = plainTextContent;
-                    fileNameDisplay.textContent = `Đang xem: ${fileName}`;
-                    console.log("Document content loaded from IndexedDB and stored for AI context. Length:", currentDocumentTextContent.length);
+                        
+                        currentDocumentTextContent = plainTextContent;
+                        fileNameDisplay.textContent = `Đang xem: ${fileName}`;
+                        console.log("Document content loaded from IndexedDB and stored for AI context. Length:", currentDocumentTextContent.length);
+                    };
+                    blobReader.readAsArrayBuffer(fileBlob); // Read the Blob into an ArrayBuffer
+
                 };
 
                 request.onerror = (event) => {
@@ -862,7 +870,7 @@ Yêu cầu của tôi: ${aiPrompt}`;
         });
 
         fileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
+            const file = event.target.files[0]; // Get the File object directly
             if (!file) {
                 fileNameDisplay.textContent = "Chưa có file nào được chọn.";
                 documentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
@@ -876,7 +884,7 @@ Yêu cầu của tôi: ${aiPrompt}`;
                 totalPages = 1;
                 return;
             }
-            if (!auth.currentUser) { // Still require login to interact with AI
+            if (!auth.currentUser) { 
                 updateStatus('error-text', 'Vui lòng đăng nhập để tải lên file (để dùng AI và lưu lịch sử AI).', authStatus);
                 fileNameDisplay.textContent = "Chưa có file nào được chọn."; 
                 event.target.value = ''; 
@@ -908,110 +916,105 @@ Yêu cầu của tôi: ${aiPrompt}`;
             currentPageNum = 1;
             totalPages = 1;
 
-            try {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const arrayBuffer = e.target.result;
-                    let plainTextContent = '';
-                    let convertedHtmlForDocx = ''; 
+            // Use FileReader to get ArrayBuffer for immediate display and text extraction
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const arrayBuffer = e.target.result;
+                let plainTextContent = '';
+                let convertedHtmlForDocx = ''; 
 
-                    if (file.type === 'application/pdf') {
-                        if (typeof pdfjsLib === 'undefined') {
-                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
-                            plainTextContent = `Lỗi: Thư viện PDF.js chưa được tải.`;
-                            updateStatus('error-text', `Lỗi: Thư viện PDF.js chưa được tải.`);
-                        } else {
-                            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                            pdfDocument = await loadingTask.promise; 
-                            totalPages = pdfDocument.numPages;
-                            currentPageNum = 1; 
-
-                            let fullPdfText = [];
-                            for (let i = 1; i <= totalPages; i++) {
-                                const page = await pdfDocument.getPage(i);
-                                const textContent = await page.getTextContent();
-                                const pageText = textContent.items.map(item => item.str).join(' ');
-                                fullPdfText.push(pageText);
-                            }
-                            plainTextContent = fullPdfText.join('\n\n');
-
-                            renderPdfPage(currentPageNum); 
-                            pdfPageControls.classList.remove('hidden-content'); 
-                            updateStatus('success-text', `Đã tải file PDF "${file.name}" và hiển thị.`);
-                        }
-                    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                        if (typeof window.mammoth === 'undefined') { 
-                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
-                            plainTextContent = `Lỗi: Thư viện mammoth.js chưa được tải.`;
-                            updateStatus('error-text', `Lỗi: Thư viện mammoth.js chưa được tải.`);
-                        } else {
-                            try {
-                                const result = await window.mammoth.convertToHtml({arrayBuffer: arrayBuffer}); 
-                                convertedHtmlForDocx = result.value; 
-                                plainTextContent = convertedHtmlForDocx.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-                                documentViewer.innerHTML = convertedHtmlForDocx; 
-                                updateStatus('success-text', `Đã tải file DOCX "${file.name}" và chuyển đổi sang HTML.`);
-
-                                if (result.messages.length > 0) {
-                                    console.warn("Mammoth.js conversion warnings/errors:", result.messages);
-                                }
-
-                            } catch (mammothError) {
-                                console.error("Lỗi khi chuyển đổi DOCX bằng mammoth.js:", mammothError);
-                                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX: ${mammothError.message}</p>`;
-                                plainTextContent = `Lỗi khi xử lý DOCX.`;
-                                updateStatus('error-text', `Lỗi khi xử lý DOCX: ${mammothError.message}.`);
-                            }
-                        }
+                if (file.type === 'application/pdf') {
+                    if (typeof pdfjsLib === 'undefined') {
+                        documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
+                        plainTextContent = `Lỗi: Thư viện PDF.js chưa được tải.`;
+                        updateStatus('error-text', `Lỗi: Thư viện PDF.js chưa được tải.`);
                     } else {
-                        documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${file.type}</p>`;
-                        plainTextContent = `Định dạng file không được hỗ trợ.`;
-                        updateStatus('error-text', `Lỗi: Định dạng file không được hỗ trợ "${file.type}".`); 
+                        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                        pdfDocument = await loadingTask.promise; 
+                        totalPages = pdfDocument.numPages;
+                        currentPageNum = 1; 
+
+                        let fullPdfText = [];
+                        for (let i = 1; i <= totalPages; i++) {
+                            const page = await pdfDocument.getPage(i);
+                            const textContent = await page.getTextContent();
+                            const pageText = textContent.items.map(item => item.str).join(' ');
+                            fullPdfText.push(pageText);
+                        }
+                        plainTextContent = fullPdfText.join('\n\n');
+
+                        renderPdfPage(currentPageNum); 
+                        pdfPageControls.classList.remove('hidden-content'); 
+                        updateStatus('success-text', `Đã tải file PDF "${file.name}" và hiển thị.`);
                     }
+                } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    if (typeof window.mammoth === 'undefined') { 
+                        documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
+                        plainTextContent = `Lỗi: Thư viện mammoth.js chưa được tải.`;
+                        updateStatus('error-text', `Lỗi: Thư viện mammoth.js chưa được tải.`);
+                    } else {
+                        try {
+                            const result = await window.mammoth.convertToHtml({arrayBuffer: arrayBuffer}); 
+                            convertedHtmlForDocx = result.value; 
+                            plainTextContent = convertedHtmlForDocx.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                            documentViewer.innerHTML = convertedHtmlForDocx; 
+                            updateStatus('success-text', `Đã tải file DOCX "${file.name}" và chuyển đổi sang HTML.`);
+
+                            if (result.messages.length > 0) {
+                                console.warn("Mammoth.js conversion warnings/errors:", result.messages);
+                            }
+
+                        } catch (mammothError) {
+                            console.error("Lỗi khi chuyển đổi DOCX bằng mammoth.js:", mammothError);
+                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX: ${mammothError.message}</p>`;
+                            plainTextContent = `Lỗi khi xử lý DOCX.`;
+                            updateStatus('error-text', `Lỗi khi xử lý DOCX: ${mammothError.message}.`);
+                        }
+                    }
+                } else {
+                    documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${file.type}</p>`;
+                    plainTextContent = `Định dạng file không được hỗ trợ.`;
+                    updateStatus('error-text', `Lỗi: Định dạng file không được hỗ trợ "${file.type}".`); 
+                }
+                
+                currentDocumentTextContent = plainTextContent; 
+                fileNameDisplay.textContent = `Đã tải: ${file.name}`;
+                console.log("Document content loaded and stored for AI context. Length:", currentDocumentTextContent.length);
+
+                // --- Save file (Blob) to IndexedDB ---
+                try {
+                    const transaction = indexedDB_db.transaction([FILE_STORE_NAME], 'readwrite');
+                    const objectStore = transaction.objectStore(FILE_STORE_NAME);
                     
-                    currentDocumentTextContent = plainTextContent; 
-                    fileNameDisplay.textContent = `Đã tải: ${file.name}`;
-                    console.log("Document content loaded and stored for AI context. Length:", currentDocumentTextContent.length);
+                    const fileRecord = {
+                        fileName: file.name,
+                        fileType: file.type,
+                        plainTextContent: plainTextContent,
+                        convertedHtml: convertedHtmlForDocx, 
+                        fileBlob: file, // Store the File object (which is a Blob)
+                        uploadedAt: Date.now() 
+                    };
 
-                    // --- NEW: Save file to IndexedDB ---
-                    try {
-                        const transaction = indexedDB_db.transaction([FILE_STORE_NAME], 'readwrite');
-                        const objectStore = transaction.objectStore(FILE_STORE_NAME);
-                        
-                        const fileRecord = {
-                            fileName: file.name,
-                            fileType: file.type,
-                            plainTextContent: plainTextContent,
-                            convertedHtml: convertedHtmlForDocx, 
-                            arrayBuffer: arrayBuffer, // Store the actual file data
-                            uploadedAt: Date.now() // Use client-side timestamp for local storage
-                        };
+                    const request = objectStore.add(fileRecord);
+                    
+                    request.onsuccess = (event) => {
+                        currentFileId = event.target.result; // IndexedDB key
+                        console.log("File saved to IndexedDB with ID:", currentFileId);
+                        updateStatus('success-text', `Đã tải và lưu file "${file.name}" cục bộ vào thư viện.`, fileNameDisplay);
+                        loadSavedFilesFromIndexedDB(); // Refresh the list
+                    };
 
-                        const request = objectStore.add(fileRecord);
-                        
-                        request.onsuccess = (event) => {
-                            currentFileId = event.target.result; // IndexedDB key
-                            console.log("File saved to IndexedDB with ID:", currentFileId);
-                            updateStatus('success-text', `Đã tải và lưu file "${file.name}" cục bộ vào thư viện.`, fileNameDisplay);
-                            loadSavedFilesFromIndexedDB(); // Refresh the list
-                        };
+                    request.onerror = (event) => {
+                        console.error("Error saving file to IndexedDB:", event.target.errorCode, event.target.error);
+                        updateStatus('error-text', `Lỗi khi lưu file cục bộ: ${event.target.error.message || event.target.errorCode}.`, fileNameDisplay);
+                    };
 
-                        request.onerror = (event) => {
-                            console.error("Error saving file to IndexedDB:", event.target.errorCode);
-                            updateStatus('error-text', `Lỗi khi lưu file cục bộ: ${event.target.errorCode}.`, fileNameDisplay);
-                        };
-
-                    } catch (indexedDBError) {
-                        console.error("Error saving file to IndexedDB (transaction):", indexedDBError);
-                        updateStatus('error-text', `Lỗi khi lưu file cục bộ: ${indexedDBError.message}.`, fileNameDisplay);
-                    }
-                };
-                reader.readAsArrayBuffer(file); 
-            } catch (error) {
-                console.error("Lỗi khi đọc file hoặc xử lý:", error);
-                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi đọc file: ${error.message}</p>`;
-                updateStatus('error-text', `Lỗi khi đọc file: ${error.message}`);
-            }
+                } catch (indexedDBError) {
+                    console.error("Error saving file to IndexedDB (transaction):", indexedDBError);
+                    updateStatus('error-text', `Lỗi khi lưu file cục bộ: ${indexedDBError.message}.`, fileNameDisplay);
+                }
+            };
+            reader.readAsArrayBuffer(file); // Keep reading as ArrayBuffer for immediate display
         });
 
         // ===============================================
