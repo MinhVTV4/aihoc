@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trung Tâm Học Tập AI - Gemini 2.0 Flash</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles for spinner - Tailwind doesn't have direct spinner components */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-left-color: #fff;
+            border-radius: 50%;
+            width: 1.25rem; /* 20px */
+            height: 1.25rem; /* 20px */
+            animation: spin 1s linear infinite;
+        }
+        .large-spinner {
+            width: 2.5rem; /* 40px */
+            height: 2.5rem; /* 40px */
+            border-width: 5px;
+            border-left-color: #3b82f6; /* Tailwind blue-500 */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Styles for content rendered into #documentViewer */
+        #documentViewer p {
+            margin-bottom: 0.75rem; /* Space after paragraphs */
+        }
+        #documentViewer h1 { 
+            font-size: 2.5rem; 
+            font-weight: bold; 
+            margin-top: 1.5rem; 
+            margin-bottom: 1rem; 
+            color: #1a202c; /* gray-900 */
+        }
+        #documentViewer h2 { 
+            font-size: 2rem; 
+            font-weight: bold; 
+            margin-top: 1.25rem; 
+            margin-bottom: 0.75rem; 
+            color: #2d3748; /* gray-800 */
+        }
+        #documentViewer h3 { 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            margin-top: 1rem; 
+            margin-bottom: 0.5rem; 
+            color: #4a5568; /* gray-700 */
+        }
+        #documentViewer ul, #documentViewer ol {
+            margin-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        #documentViewer li {
+            margin-bottom: 0.25rem;
+        }
+        #documentViewer table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 1rem; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Subtle shadow for tables */
+        }
+        #documentViewer th, #documentViewer td { 
+            border: 1px solid #e2e8f0; /* gray-200 */
+            padding: 0.75rem; 
+            text-align: left; 
+        }
+        #documentViewer th {
+            background-color: #edf2f7; /* gray-100 */
+            font-weight: 600;
+        }
+        #documentViewer tr:nth-child(even) {
+            background-color: #f7fafc; /* gray-50 */
+        }
+
+        /* Hidden class for JavaScript toggling */
+        .hidden-content {
+            display: none !important;
+        }
+        /* New style for selection action buttons - initially hidden */
+        .selection-action-buttons {
+            display: none; /* Controlled by JS */
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        /* Show when 'active' class is added by JS */
+        .selection-action-buttons.active {
+            display: flex;
+        }
+        .selection-action-buttons button {
+            width: 100%;
+            background-color: #10b981; /* Green for these specific actions */
+            color: white;
+            font-semibold py-2 px-4 rounded-md shadow transition duration-300 ease-in-out
+        }
+        .selection-action-buttons button:hover {
+            background-color: #059669;
+        }
+
+        /* Styles for PDF canvases and text layer */
+        .pdf-page-wrapper {
+            position: relative; /* Container for canvas and text layer */
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow for pages */
+        }
+        .pdf-page-wrapper canvas {
+            display: block;
+            width: 100%; /* Canvas will take full width of its wrapper */
+            height: auto;
+        }
+        .pdf-page-wrapper .textLayer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden; /* Hide overflow text */
+            font-family: sans-serif; /* Default font if PDF font not loaded */
+            line-height: 1.3; /* Adjust line height for better selection */
+            color: transparent; /* Make text invisible, but selectable */
+            pointer-events: none; /* Text layer itself does not block events */
+            user-select: text; /* Allow text selection */
+        }
+        .pdf-page-wrapper .textLayer > div {
+            position: absolute;
+            white-space: pre; /* Preserve white space for text positioning */
+            cursor: text; /* Show text cursor on text layer */
+            color: transparent; /* Keep text invisible */
+            /* This div contains individual text elements. We don't want it to block mouse events for canvas */
+            pointer-events: auto; /* Allow selection on text spans */
+        }
+        .pdf-page-wrapper .textLayer ::selection {
+            background: rgba(0, 0, 255, 0.3); /* Blue highlight color for selected text */
+        }
+
+        /* Style for saved file list items */
+        .saved-file-item {
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #f0f4f8; /* blue-50 */
+            border: 1px solid #d9e2ec; /* blue-100 */
+            transition: background-color 0.2s ease-in-out;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .saved-file-item:hover {
+            background-color: #e2e8f0; /* gray-200 */
+        }
+        .saved-file-item .file-name {
+            font-weight: 500;
+            color: #2d3748; /* gray-800 */
+        }
+        .saved-file-item .file-date {
+            font-size: 0.75rem;
+            color: #718096; /* gray-600 */
+        }
+    </style>
+    <!-- Thư viện PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Thiết lập worker cho PDF.js
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
+    <!-- Thư viện Mammoth.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth.js/1.6.0/mammoth.browser.min.js"></script>
+</head>
+<body class="min-h-screen bg-gray-100 text-gray-800 flex flex-col items-center p-4 font-sans">
+    <h1 class="text-3xl md:text-4xl font-bold text-blue-700 text-center mb-4 mt-6">Trung Tâm Học Tập Thông Minh</h1>
+    <h2 class="text-md md:text-lg text-blue-600 text-center mb-6">(Tích hợp AI Gemini 2.0 Flash)</h2>
+
+    <!-- Authentication Section -->
+    <div id="authSection" class="w-full max-w-md mx-auto bg-white p-6 rounded-lg shadow-md mb-6">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Đăng nhập hoặc Đăng ký</h3>
+        <div id="authForm" class="flex flex-col gap-4">
+            <input type="email" id="emailInput" placeholder="Email" class="p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-base">
+            <input type="password" id="passwordInput" placeholder="Mật khẩu" class="p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-base">
+            <button id="registerBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-md shadow-md transition duration-300 ease-in-out">Đăng ký</button>
+            <button id="loginBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-md shadow-md transition duration-300 ease-in-out">Đăng nhập</button>
+            <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden-content">Đăng xuất</button>
+            <p id="authStatus" class="text-sm font-semibold text-center text-gray-600"></p>
+        </div>
+        <div id="userIdDisplay" class="text-xs text-gray-500 text-center mt-2 hidden-content"></div>
+    </div>
+
+    <!-- Main Learning Center Content - Hidden by default -->
+    <div id="mainContent" class="w-full max-w-6xl mx-auto flex flex-col md:grid md:grid-cols-3 gap-6 hidden-content">
+        <!-- Main Content Area - Document Viewer -->
+        <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Nội dung tài liệu của bạn</h3>
+            
+            <!-- File Upload Section -->
+            <div class="flex flex-col sm:flex-row items-center gap-4 mb-4">
+                <label for="fileInput" class="relative cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-300 ease-in-out">
+                    Chọn File (PDF/DOCX)
+                    <input type="file" id="fileInput" class="absolute inset-0 opacity-0 cursor-pointer" accept=".pdf,.docx">
+                </label>
+                <span id="fileNameDisplay" class="text-gray-600 truncate max-w-xs">Chưa có file nào được chọn.</span>
+            </div>
+
+            <!-- Saved Files List -->
+            <div class="mb-4">
+                <h4 class="text-md font-semibold text-gray-700 mb-2">Tài liệu đã lưu:</h4>
+                <div id="savedFilesList" class="flex flex-col gap-2 border border-gray-200 rounded-md p-2 max-h-40 overflow-y-auto bg-gray-50">
+                    <p class="text-sm text-gray-500 text-center py-4">Đang tải...</p>
+                </div>
+            </div>
+
+            <!-- Document Viewer -->
+            <div id="documentViewer" class="flex-grow rounded-md p-4 bg-gray-50 overflow-auto text-sm text-gray-700 relative">
+                <p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>
+                <!-- Content from PDF.js or mammoth.js will be rendered here -->
+            </div>
+        </div>
+
+        <!-- AI Sidebar -->
+        <div id="aiSidebar" class="md:col-span-1 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Tương tác với AI</h3>
+            
+            <!-- New: Selection-based AI buttons -->
+            <div id="selectionActionButtons" class="selection-action-buttons">
+                <button id="explainSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Giải thích (đã chọn)</button>
+                <button id="summarizeSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Tóm tắt (đã chọn)</button>
+                <button id="expandSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Mở rộng (đã chọn)</button>
+            </div>
+
+            <textarea id="promptInput" rows="4" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-base resize-y" placeholder="Nhập câu hỏi hoặc lệnh của bạn về nội dung (hoặc chọn văn bản để tương tác nhanh)..."></textarea>
+            
+            <button id="sendPromptButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-md shadow-md transition duration-300 ease-in-out flex items-center justify-center gap-2">
+                <span id="buttonText">Gửi yêu cầu tới Gemini</span>
+                <div id="buttonSpinner" class="spinner hidden"></div>
+            </button>
+            
+            <p id="statusMessage" class="text-sm font-semibold text-gray-600 text-center"></p>
+
+            <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Phản hồi từ Gemini:</h4>
+            <div id="responseContainer" class="min-h-[120px] p-4 border border-gray-300 bg-gray-50 rounded-md text-sm text-gray-700 flex items-center justify-center relative overflow-auto">
+                Chưa có phản hồi...
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // 1. Import các hàm cần thiết từ Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            query, 
+            where, 
+            orderBy, 
+            onSnapshot,
+            serverTimestamp // Import serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { getAI, getGenerativeModel, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-ai.js";
+
+        // 2. Cấu hình Firebase của bạn
+        const firebaseConfig = {
+            apiKey: "AIzaSyBg30DQBCuAXPfAaOtyN3EjBxpBghKzqos", 
+            authDomain: "aihoc-df3c8.firebaseapp.com",
+            projectId: "aihoc-df3c8",
+            storageBucket: "aihoc-df3c8.firebasestorage.app", 
+            messagingSenderId: "390455481403", 
+            appId: "1:390455481403:web:f1b2561bae7679b3b7381e"
+        };
+
+        // 3. Khởi tạo Firebase App, Auth và Firestore
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app); // Get the Auth service instance
+        const db = getFirestore(app); // Get the Firestore service instance
+        console.log("Firebase App initialized!");
+        
+        // Global variables for appId and userId
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        let currentUserId = null; // To store the current user's ID
+
+        // Lấy các phần tử HTML liên quan đến Auth
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const registerBtn = document.getElementById('registerBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const authStatus = document.getElementById('authStatus');
+        const authForm = document.getElementById('authForm');
+        const mainContent = document.getElementById('mainContent');
+        const userIdDisplay = document.getElementById('userIdDisplay'); // For displaying userId
+
+        // Lấy các phần tử HTML khác
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const documentViewer = document.getElementById('documentViewer');
+        const promptInput = document.getElementById('promptInput');
+        const sendPromptButton = document.getElementById('sendPromptButton');
+        const buttonText = document.getElementById('buttonText');
+        const buttonSpinner = document.getElementById('buttonSpinner');
+        const responseContainer = document.getElementById('responseContainer');
+        const statusMessage = document.getElementById('statusMessage');
+        const savedFilesList = document.getElementById('savedFilesList'); // For saved files list
+
+        // Selection Action Buttons
+        const selectionActionButtons = document.getElementById('selectionActionButtons');
+        const explainSelectedBtn = document.getElementById('explainSelectedBtn');
+        const summarizeSelectedBtn = document.getElementById('summarizeSelectedBtn');
+        const expandSelectedBtn = document.getElementById('expandSelectedBtn');
+
+
+        // Biến để lưu trữ nội dung văn bản thuần túy của tài liệu đang hiển thị (quan trọng cho AI)
+        let currentDocumentTextContent = ""; 
+        // Biến để lưu trữ văn bản được chọn bởi người dùng
+        let selectedTextForAI = ""; 
+        // Biến để lưu trữ ID của file đang được xem
+        let currentFileId = null;
+
+        /**
+         * Hàm cập nhật trạng thái hiển thị trên giao diện.
+         * @param {string} type - Loại trạng thái ('success-text', 'error-text', 'info-text').
+         * @param {string} message - Tin nhắn hiển thị.
+         * @param {HTMLElement} targetElement - Phần tử HTML để cập nhật trạng thái. Mặc định là statusMessage.
+         */
+        function updateStatus(type, message, targetElement = statusMessage) {
+            targetElement.className = `text-sm font-semibold text-center mt-2 ${
+                type === 'success-text' ? 'text-green-600' : 
+                type === 'error-text' ? 'text-red-600' : 
+                'text-yellow-600' // Default to info/yellow
+            }`;
+            targetElement.innerHTML = message; // Dùng innerHTML để hỗ trợ <br>
+        }
+
+        updateStatus('info-text', "Firebase App đã khởi tạo.<br>Đang chờ khởi tạo AI Model...");
+
+        // 4. Khởi tạo dịch vụ Gemini Developer API và tạo một thực thể mô hình Gemini.
+        let model;
+        try {
+            const ai = getAI(app, { backend: new GoogleAIBackend() });
+            model = getGenerativeModel(ai, { model: "gemini-2.0-flash" }); // Sử dụng model "gemini-2.0-flash"
+            console.log("Generative Model instance created with model 'gemini-2.0-flash'!");
+            updateStatus('success-text', "Generative Model instance đã tạo. Sẵn sàng gửi yêu cầu.");
+        } catch (e) {
+            console.error("Lỗi khi khởi tạo AI Model:", e);
+            updateStatus('error-text', `Lỗi khởi tạo AI Model: ${e.message}.<br>Kiểm tra Console (F12) và đảm bảo Gemini API đã được kích hoạt cho dự án của bạn.`);
+        }
+
+        // ===============================================
+        // Firebase Authentication Logic & Data Loading
+        // ===============================================
+
+        // Listen for authentication state changes
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in
+                currentUserId = user.uid;
+                authStatus.className = 'text-sm font-semibold text-green-600 text-center';
+                authStatus.textContent = `Đã đăng nhập với: ${user.email}`;
+                userIdDisplay.textContent = `User ID: ${currentUserId}`;
+                userIdDisplay.classList.remove('hidden-content');
+                authForm.classList.add('hidden-content');
+                mainContent.classList.remove('hidden-content');
+                logoutBtn.classList.remove('hidden-content');
+                console.log("User logged in:", user.email, "UID:", currentUserId);
+                
+                // Load user's saved files
+                loadSavedFiles(currentUserId);
+
+            } else {
+                // User is signed out
+                currentUserId = null;
+                authStatus.className = 'text-sm font-semibold text-red-600 text-center';
+                authStatus.textContent = "Chưa đăng nhập.";
+                userIdDisplay.classList.add('hidden-content');
+                authForm.classList.remove('hidden-content');
+                mainContent.classList.add('hidden-content');
+                logoutBtn.classList.add('hidden-content');
+                console.log("User logged out.");
+                
+                // Clear document content and reset UI when logged out
+                documentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+                fileNameDisplay.textContent = "Chưa có file nào được chọn.";
+                currentDocumentTextContent = "";
+                selectedTextForAI = "";
+                currentFileId = null; // Clear current file ID
+                selectionActionButtons.classList.remove('active'); // Hide selection buttons
+                savedFilesList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Đăng nhập để xem tài liệu đã lưu.</p>'; // Clear saved files list
+            }
+        });
+
+        // Event listener for Register button
+        registerBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) {
+                updateStatus('error-text', 'Vui lòng nhập Email và Mật khẩu.', authStatus);
+                return;
+            }
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                updateStatus('success-text', 'Đăng ký thành công! Đang đăng nhập...', authStatus);
+            } catch (error) {
+                console.error("Lỗi đăng ký:", error.code, error.message);
+                let errorMessage = 'Lỗi đăng ký. Vui lòng thử lại.';
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'Email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Email không hợp lệ.';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Mật khẩu quá yếu (tối thiểu 6 ký tự).';
+                }
+                updateStatus('error-text', errorMessage, authStatus);
+            }
+        });
+
+        // Event listener for Login button
+        loginBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) {
+                updateStatus('error-text', 'Vui lòng nhập Email và Mật khẩu.', authStatus);
+                return;
+            }
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                updateStatus('success-text', 'Đăng nhập thành công!', authStatus);
+            } catch (error) {
+                console.error("Lỗi đăng nhập:", error.code, error.message);
+                let errorMessage = 'Lỗi đăng nhập. Vui lòng kiểm tra lại Email và Mật khẩu.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMessage = 'Email hoặc mật khẩu không đúng.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Email không hợp lệ.';
+                }
+                updateStatus('error-text', errorMessage, authStatus);
+            }
+        });
+
+        // Event listener for Logout button
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                updateStatus('info-text', 'Đã đăng xuất.', authStatus);
+            } catch (error) {
+                console.error("Lỗi đăng xuất:", error);
+                updateStatus('error-text', `Lỗi đăng xuất: ${error.message}`, authStatus);
+            }
+        });
+
+        // ===============================================
+        // Firestore: Save and Load Files
+        // ===============================================
+
+        /**
+         * Loads saved files for the current user from Firestore.
+         * Uses onSnapshot for real-time updates.
+         * @param {string} userId
+         */
+        function loadSavedFiles(userId) {
+            if (!userId) {
+                console.warn("Cannot load files: User ID is null.");
+                savedFilesList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Đăng nhập để xem tài liệu đã lưu.</p>';
+                return;
+            }
+
+            const filesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/uploaded_files`);
+            const q = query(filesCollectionRef, orderBy('uploadedAt', 'desc')); // Order by timestamp
+
+            onSnapshot(q, (snapshot) => {
+                savedFilesList.innerHTML = ''; // Clear existing list
+                if (snapshot.empty) {
+                    savedFilesList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Bạn chưa có tài liệu nào được lưu.</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const fileData = doc.data();
+                    const fileId = doc.id; // Get document ID
+
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'saved-file-item';
+                    fileItem.dataset.fileId = fileId; // Store file ID
+
+                    const date = fileData.uploadedAt ? new Date(fileData.uploadedAt.toDate()) : new Date();
+                    const formattedDate = date.toLocaleDateString('vi-VN', { year: 'numeric', month: 'short', day: 'numeric' });
+
+                    fileItem.innerHTML = `
+                        <span class="file-name">${fileData.fileName}</span>
+                        <span class="file-date">${formattedDate}</span>
+                    `;
+                    
+                    fileItem.addEventListener('click', () => loadFileContent(fileId, fileData));
+                    savedFilesList.appendChild(fileItem);
+                });
+                console.log(`Loaded ${snapshot.size} saved files for user ${userId}.`);
+            }, (error) => {
+                console.error("Error loading saved files:", error);
+                savedFilesList.innerHTML = '<p class="text-sm text-red-600 text-center py-4">Lỗi khi tải tài liệu đã lưu.</p>';
+            });
+        }
+
+        /**
+         * Loads the content of a saved file into the document viewer.
+         * @param {string} fileId The Firestore document ID of the file.
+         * @param {Object} fileData The data of the file document.
+         */
+        async function loadFileContent(fileId, fileData) {
+            documentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang tải tài liệu từ thư viện...</p>';
+            fileNameDisplay.textContent = `Đang xem: ${fileData.fileName}`;
+            currentFileId = fileId; // Set current file ID
+            currentDocumentTextContent = fileData.plainTextContent || '';
+            selectedTextForAI = "";
+            selectionActionButtons.classList.remove('active');
+
+            if (fileData.fileType === 'application/pdf') {
+                // For PDF, we need to re-render it to canvas.
+                // This means we need the original arrayBuffer or a way to get it.
+                // Since we only saved plainTextContent in Firestore, this is a limitation.
+                // For full visual re-load, we'd need to save/retrieve the original file from Storage.
+                // For now, we'll display a message and the plain text.
+                documentViewer.innerHTML = `
+                    <p class="text-blue-600 font-semibold">Đã tải file PDF: ${fileData.fileName} từ thư viện.</p>
+                    <p class="mt-2">Để xem PDF đầy đủ định dạng, bạn cần tải lại file gốc.</p>
+                    <p class="mt-2">Đây là văn bản trích xuất (có thể tương tác AI):</p>
+                    <pre class="whitespace-pre-wrap font-mono text-xs mt-4 p-2 bg-gray-100 rounded">${currentDocumentTextContent.substring(0, Math.min(currentDocumentTextContent.length, 1000))}...</pre>
+                    <p class="text-xs text-gray-500 mt-2">(Chỉ hiển thị 1000 ký tự đầu tiên. Văn bản đầy đủ đã được tải cho AI.)</p>
+                `;
+            } else if (fileData.fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                // For DOCX, we can simply display the saved HTML if we saved it, or the plain text.
+                // Since we only saved plainTextContent, we'll display that.
+                // If original HTML from mammoth.js was saved, we'd display that here.
+                documentViewer.innerHTML = `
+                    <p class="text-green-600 font-semibold">Đã tải file DOCX: ${fileData.fileName} từ thư viện.</p>
+                    <p class="mt-2">Đây là nội dung văn bản (có thể tương tác AI):</p>
+                    <div class="mt-4 p-2 bg-gray-100 rounded">${fileData.convertedHtml || `<pre class="whitespace-pre-wrap font-mono text-xs">${currentDocumentTextContent.substring(0, Math.min(currentDocumentTextContent.length, 1000))}...</pre>`}</div>
+                    <p class="text-xs text-gray-500 mt-2">(Chỉ hiển thị 1000 ký tự đầu tiên nếu không có HTML. Văn bản đầy đủ đã được tải cho AI.)</p>
+                `;
+                // If you want to actually store and reload the Mammoth-converted HTML:
+                // Modify save logic to store result.value as 'convertedHtml' field.
+            }
+            updateStatus('success-text', `Đã tải tài liệu "${fileData.fileName}" từ thư viện.`);
+        }
+
+
+        // ===============================================
+        // AI Interaction Logic
+        // ===============================================
+        
+        // 5. Hàm gửi yêu cầu và hiển thị phản hồi
+        async function callGeminiAPI(aiPrompt, contextText = "") {
+            if (!model) {
+                updateStatus('error-text', "Mô hình AI chưa được khởi tạo. Vui lòng kiểm tra console để biết lỗi.");
+                return;
+            }
+            if (!auth.currentUser) { // Ensure user is logged in before calling AI
+                updateStatus('error-text', 'Vui lòng đăng nhập để sử dụng tính năng AI.', authStatus);
+                return;
+            }
+
+            if (!aiPrompt.trim()) {
+                updateStatus('error-text', "Vui lòng nhập lời nhắc!");
+                return;
+            }
+
+            // Xây dựng prompt cho Gemini
+            let fullPrompt = aiPrompt.trim();
+            if (contextText) {
+                fullPrompt = `Sử dụng nội dung sau làm ngữ cảnh để trả lời yêu cầu của tôi. Nếu không đủ thông tin, hãy cho biết:
+---
+Nội dung: ${contextText}
+---
+Yêu cầu của tôi: ${aiPrompt}`;
+            }
+
+            // Hiển thị trạng thái đang gửi
+            updateStatus('info-text', "Đang gửi yêu cầu đến Gemini...");
+            responseContainer.innerHTML = '<div class="large-spinner mx-auto my-4"></div>'; // Hiển thị spinner lớn
+            responseContainer.classList.add('bg-gray-100'); // Thêm class để đổi màu nền khi loading
+            responseContainer.classList.remove('bg-gray-50'); // Xóa màu nền cũ
+            
+            buttonText.textContent = 'Đang gửi...';
+            buttonSpinner.classList.remove('hidden');
+            sendPromptButton.disabled = true;
+            promptInput.disabled = true; // Disable input during request
+            // Disable selection action buttons as well
+            explainSelectedBtn.disabled = true;
+            summarizeSelectedBtn.disabled = true;
+            expandSelectedBtn.disabled = true;
+
+            console.log("Sending prompt to Gemini:", fullPrompt);
+
+            try {
+                const result = await model.generateContent(fullPrompt);
+                const response = result.response;
+                const text = response.text();
+                
+                responseContainer.innerText = text; // Sử dụng innerText để đảm bảo văn bản được hiển thị đúng
+                responseContainer.classList.remove('bg-gray-100');
+                responseContainer.classList.add('bg-gray-50');
+                updateStatus('success-text', "Đã nhận phản hồi từ Gemini.");
+                console.log("Response text:", text);
+
+                // --- NEW: Save AI interaction to Firestore ---
+                if (currentUserId) {
+                    await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/ai_interactions`), {
+                        prompt: aiPrompt,
+                        response: text,
+                        contextUsed: contextText.substring(0, Math.min(contextText.length, 500)) + (contextText.length > 500 ? '...' : ''), // Save truncated context
+                        timestamp: serverTimestamp(),
+                        fileId: currentFileId // Link to the currently viewed file
+                    });
+                    console.log("AI interaction saved to Firestore.");
+                }
+
+            } catch (error) {
+                console.error("Lỗi khi gọi Gemini API:", error);
+                responseContainer.innerText = `Lỗi: ${error.message}. Vui lòng kiểm tra Console (F12) để biết thêm chi tiết.`;
+                responseContainer.classList.remove('bg-gray-100');
+                responseContainer.classList.add('bg-gray-50');
+                updateStatus('error-text', `Lỗi khi gọi Gemini API: ${error.message}.`);
+            } finally {
+                // Khôi phục trạng thái nút và input
+                buttonText.textContent = 'Gửi yêu cầu tới Gemini';
+                buttonSpinner.classList.add('hidden');
+                sendPromptButton.disabled = false;
+                promptInput.disabled = false; // Re-enable input
+                // Re-enable selection action buttons (if visible)
+                explainSelectedBtn.disabled = false;
+                summarizeSelectedBtn.disabled = false;
+                expandSelectedBtn.disabled = false;
+            }
+        }
+
+        // 6. Gán sự kiện cho nút gửi (để gửi promptInput)
+        sendPromptButton.addEventListener("click", () => {
+            // Khi gửi từ ô nhập liệu, toàn bộ nội dung tài liệu sẽ là ngữ cảnh
+            callGeminiAPI(promptInput.value, currentDocumentTextContent);
+        });
+
+        // ===============================================
+        // Logic xử lý File
+        // ===============================================
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                fileNameDisplay.textContent = "Chưa có file nào được chọn.";
+                documentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+                currentDocumentTextContent = ""; // Clear content if no file
+                selectedTextForAI = ""; // Clear selected text
+                selectionActionButtons.classList.remove('active'); // Hide selection buttons
+                currentFileId = null;
+                return;
+            }
+            if (!auth.currentUser) { // Ensure user is logged in before handling file
+                updateStatus('error-text', 'Vui lòng đăng nhập để tải lên file.', authStatus);
+                fileNameDisplay.textContent = "Chưa có file nào được chọn."; // Reset file input UI
+                event.target.value = ''; // Clear the file input
+                currentFileId = null;
+                return;
+            }
+
+            fileNameDisplay.textContent = `Đang tải: ${file.name}`;
+            updateStatus('info-text', `Đang xử lý file "${file.name}"...`);
+            documentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang đọc và hiển thị nội dung...</p>';
+            currentDocumentTextContent = ""; // Clear content before processing new file
+            selectedTextForAI = ""; // Clear selected text
+            selectionActionButtons.classList.remove('active'); // Hide selection buttons
+            currentFileId = null; // Reset current file ID
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const arrayBuffer = e.target.result;
+                    let plainTextContent = '';
+                    let convertedHtmlForDocx = ''; // To store HTML for DOCX
+
+                    if (file.type === 'application/pdf') {
+                        if (typeof pdfjsLib === 'undefined') {
+                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
+                            plainTextContent = `Lỗi: PDF.js chưa được tải.`;
+                            updateStatus('error-text', `Lỗi: Thư viện PDF.js chưa được tải. Vui lòng kiểm tra kết nối mạng hoặc CDN.`);
+                        } else {
+                            // --- PDF Rendering Logic (Canvas + Text Layer) ---
+                            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                            const pdf = await loadingTask.promise;
+                            
+                            // Clear previous content
+                            documentViewer.innerHTML = ''; 
+                            
+                            // Get desired width (e.g., from documentViewer's clientWidth, subtract padding)
+                            const viewerWidth = documentViewer.clientWidth - 32; // Subtract padding-x (p-4 * 2 = 16 * 2 = 32px)
+
+                            for (let i = 1; i <= pdf.numPages; i++) {
+                                const page = await pdf.getPage(i);
+                                const viewport = page.getViewport({ scale: 1 }); // Initial scale 1
+                                
+                                // Calculate scale to fit viewerWidth
+                                const scale = viewerWidth / viewport.width;
+                                const scaledViewport = page.getViewport({ scale: scale });
+
+                                // Create page wrapper for canvas and textLayer
+                                const pageWrapper = document.createElement('div');
+                                pageWrapper.className = 'pdf-page-wrapper';
+                                pageWrapper.style.width = `${scaledViewport.width}px`;
+                                pageWrapper.style.height = `${scaledViewport.height}px`;
+
+                                // Create canvas for rendering
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d');
+                                canvas.height = scaledViewport.height;
+                                canvas.width = scaledViewport.width;
+                                pageWrapper.appendChild(canvas);
+                                
+                                // Create text layer div
+                                const textLayerDiv = document.createElement('div');
+                                textLayerDiv.className = 'textLayer';
+                                pageWrapper.appendChild(textLayerDiv);
+
+                                documentViewer.appendChild(pageWrapper);
+
+                                // Render PDF page into canvas
+                                await page.render({
+                                    canvasContext: context,
+                                    viewport: scaledViewport
+                                }).promise;
+
+                                // --- Extract text for AI ---
+                                const textContent = await page.getTextContent();
+                                await pdfjsLib.renderTextLayer({
+                                    textContent: textContent,
+                                    container: textLayerDiv,
+                                    viewport: scaledViewport,
+                                    textDivs: [] // Important: pass an empty array to renderTextLayer for initial render
+                                }).promise;
+
+                                const pageText = textContent.items.map(item => item.str).join(' ');
+                                plainTextContent += pageText + '\n\n'; 
+                            }
+                            updateStatus('success-text', `Đã tải file PDF "${file.name}" và hiển thị.`);
+                        }
+                    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                        if (typeof mammoth === 'undefined') {
+                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
+                            plainTextContent = `Lỗi: mammoth.js chưa được tải.`;
+                            updateStatus('error-text', `Lỗi: Thư thư viện mammoth.js chưa được tải. Vui lòng kiểm tra kết nối mạng hoặc CDN.`);
+                        } else {
+                            // Use mammoth.js to convert DOCX to HTML
+                            const result = await mammoth.convertToHtml({arrayBuffer: arrayBuffer});
+                            convertedHtmlForDocx = result.value; // The generated HTML
+                            
+                            // Basic stripping HTML for plain text to send to AI
+                            plainTextContent = convertedHtmlForDocx.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                            
+                            documentViewer.innerHTML = convertedHtmlForDocx; // Display HTML
+                            updateStatus('success-text', `Đã tải file DOCX "${file.name}" và chuyển đổi sang HTML.`);
+                        }
+                    } else {
+                        documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${file.type}</p>`;
+                        plainTextContent = `Định dạng file không được hỗ trợ.`;
+                        updateStatus('error-text', `Lỗi: Định dạng file không được hỗ trợ "${file.type}".`);
+                    }
+                    
+                    currentDocumentTextContent = plainTextContent; // Store for AI context
+                    fileNameDisplay.textContent = `Đã tải: ${file.name}`;
+                    console.log("Document content loaded and stored for AI context. Length:", currentDocumentTextContent.length);
+
+                    // --- NEW: Save file metadata and content to Firestore ---
+                    if (currentUserId) {
+                        try {
+                            const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/uploaded_files`), {
+                                fileName: file.name,
+                                fileType: file.type,
+                                plainTextContent: plainTextContent,
+                                convertedHtml: convertedHtmlForDocx, // Save converted HTML for DOCX
+                                uploadedAt: serverTimestamp() // Use server timestamp
+                            });
+                            currentFileId = docRef.id; // Store the ID of the newly saved file
+                            console.log("File metadata and content saved to Firestore with ID:", docRef.id);
+                            updateStatus('success-text', `Đã tải và lưu file "${file.name}" vào thư viện.`, fileNameDisplay); // Update file display status
+                        } catch (firestoreError) {
+                            console.error("Error saving file to Firestore:", firestoreError);
+                            updateStatus('error-text', `Lỗi khi lưu file vào thư viện: ${firestoreError.message}.`, fileNameDisplay);
+                        }
+                    }
+                };
+                reader.readAsArrayBuffer(file); 
+            } catch (error) {
+                console.error("Lỗi khi đọc file hoặc xử lý:", error);
+                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi đọc file: ${error.message}</p>`;
+                updateStatus('error-text', `Lỗi khi đọc file: ${error.message}`);
+            }
+        });
+
+        // ===============================================
+        // Logic lựa chọn văn bản (Updated for Mobile-Friendly)
+        // ===============================================
+
+        // Event for both mouseup (desktop) and touchend (mobile)
+        documentViewer.addEventListener('mouseup', handleTextSelection);
+        documentViewer.addEventListener('touchend', handleTextSelection);
+
+        function handleTextSelection() {
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            
+            // Ensure text is selected and it's within the document viewer
+            if (selectedText.length > 0 && auth.currentUser && documentViewer.contains(selection.anchorNode) && documentViewer.contains(selection.focusNode)) {
+                selectedTextForAI = selectedText; // Store selected text for AI
+                selectionActionButtons.classList.add('active'); // Show selection buttons
+                console.log("Text selected for AI:", selectedTextForAI);
+            } else {
+                selectedTextForAI = ""; // Clear selected text
+                selectionActionButtons.classList.remove('active'); // Hide selection buttons
+                // Clear the selection in the document viewer when nothing is selected
+                if (selection.rangeCount > 0 && !documentViewer.contains(selection.anchorNode) && !selectionActionButtons.contains(event.target)) {
+                    selection.removeAllRanges();
+                }
+            }
+        }
+
+        // Add event listeners for the new selection action buttons
+        explainSelectedBtn.addEventListener('click', () => {
+            if (selectedTextForAI) {
+                const prompt = `Giải thích thuật ngữ "${selectedTextForAI}" dựa trên ngữ cảnh tài liệu.`;
+                promptInput.value = prompt; // Prefill prompt input
+                callGeminiAPI(prompt, currentDocumentTextContent); // Send document context
+                selectionActionButtons.classList.remove('active'); // Hide buttons after action
+                window.getSelection().removeAllRanges(); // Clear text selection
+                selectedTextForAI = ""; // Clear selected text
+            }
+        });
+
+        summarizeSelectedBtn.addEventListener('click', () => {
+            if (selectedTextForAI) {
+                const prompt = `Tóm tắt đoạn văn bản sau đây:\n\n"${selectedTextForAI}"`;
+                promptInput.value = prompt; // Prefill prompt input
+                callGeminiAPI(prompt, selectedTextForAI); // Only summarize selected text
+                selectionActionButtons.classList.remove('active'); // Hide buttons after action
+                window.getSelection().removeAllRanges(); // Clear text selection
+                selectedTextForAI = ""; // Clear selected text
+            }
+        });
+
+        expandSelectedBtn.addEventListener('click', () => {
+            if (selectedTextForAI) {
+                const prompt = `Mở rộng và cung cấp thêm thông tin về chủ đề "${selectedTextForAI}" dựa trên ngữ cảnh tài liệu.`;
+                promptInput.value = prompt; // Prefill prompt input
+                callGeminiAPI(prompt, currentDocumentTextContent); // Send document context
+                selectionActionButtons.classList.remove('active'); // Hide buttons after action
+                window.getSelection().removeAllRanges(); // Clear text selection
+                selectedTextForAI = ""; // Clear selected text
+            }
+        });
+        
+        // Initial setup for document viewer (placeholder message)
+        documentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+    </script>
+</body>
+</html>
