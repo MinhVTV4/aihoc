@@ -217,9 +217,9 @@
 
     <!-- Main Learning Center Content - Hidden by default -->
     <!-- Removed md:grid-cols-12 and p-4 from here, using flex and p-4 on direct children for full width -->
-    <div id="mainContent" class="w-full mx-auto flex flex-col md:flex-row gap-6 p-4 hidden-content"> 
+    <div id="mainContent" class="w-full mx-auto flex flex-col gap-6 p-4 hidden-content"> <!-- Removed md:flex-row to make it stack vertically first -->
         <!-- File Upload Section & Saved Files List (now a separate block, spans full width) -->
-        <div class="w-full md:w-auto bg-white p-6 rounded-lg shadow-md flex flex-col gap-4 mb-4 md:mb-0">
+        <div class="w-full bg-white p-6 rounded-lg shadow-md flex flex-col gap-4 mb-4"> <!-- Removed md:w-auto and md:mb-0 -->
             <div class="flex flex-col sm:flex-row items-center gap-4 mb-4">
                 <label for="fileInput" class="relative cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-300 ease-in-out">
                     Chọn File (PDF/DOCX)
@@ -582,7 +582,7 @@
         logoutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                updateStatus('info-text', 'Đã đăng xuất.', authStatus);
+                updateStatus('info-info', 'Đã đăng xuất.', authStatus); // Changed 'info-text' to 'info-info'
             } catch (error) {
                 console.error("Lỗi đăng xuất:", error);
                 updateStatus('error-text', `Lỗi đăng xuất: ${error.message}`, authStatus);
@@ -622,7 +622,7 @@
                 files.forEach(fileData => {
                     const fileItem = document.createElement('div');
                     fileItem.className = 'saved-file-item';
-                    fileItem.dataset.fileId = fileData.id; 
+                    fileItem.dataset.id = fileData.id; 
                     
                     const date = fileData.uploadedAt ? new Date(fileData.uploadedAt) : new Date();
                     const formattedDate = date.toLocaleDateString('vi-VN', { year: 'numeric', month: 'short', day: 'numeric' });
