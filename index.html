@@ -126,7 +126,7 @@
         .pdf-page-wrapper canvas {
             display: block;
             max-width: 100%; /* Canvas will scale down if larger than container */
-            height: auto; /* Maintain aspect ratio */
+            height: auto;
         }
         .pdf-page-wrapper .textLayer {
             position: absolute;
@@ -140,6 +140,7 @@
             color: transparent; /* Make text invisible, but selectable */
             pointer-events: none; /* Text layer itself does not block events */
             user-select: text; /* Allow text selection */
+            transform-origin: 0% 0%; /* Ensure transform is applied from top-left */
         }
         .pdf-page-wrapper .textLayer > div {
             position: absolute;
@@ -150,6 +151,13 @@
         }
         .pdf-page-wrapper .textLayer ::selection {
             background: rgba(0, 0, 255, 0.3); /* Blue highlight color for selected text */
+        }
+        /* Ensure textLayer is above canvas */
+        .pdf-page-wrapper canvas, .pdf-page-wrapper .textLayer {
+            z-index: 1;
+        }
+        .pdf-page-wrapper .textLayer {
+            z-index: 2; /* Make sure text layer is above canvas */
         }
 
         /* Style for saved file list items */
@@ -818,7 +826,7 @@ Yêu cầu của tôi: ${aiPrompt}`;
                 const pageWrapper = document.createElement('div');
                 pageWrapper.className = 'pdf-page-wrapper';
                 pageWrapper.style.width = `${scaledViewport.width}px`;
-                pageWrapper.style.height = `${scaledViewport.height}px`;
+                pageWrapper.style.height = `${scaledViewport.width * (viewport.height / viewport.width)}px`; // Adjust height based on scaled width to maintain aspect ratio
 
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
@@ -846,6 +854,14 @@ Yêu cầu của tôi: ${aiPrompt}`;
                     textDivs: []
                 }).promise;
 
+                // Update text layer scale and position to match canvas
+                // This is crucial for correct text selection/copy
+                const textLayerStyle = textLayerDiv.style;
+                const scaleX = scaledViewport.width / viewport.width;
+                const scaleY = scaledViewport.height / viewport.height;
+                textLayerStyle.transform = `scale(${scaleX}, ${scaleY})`;
+                textLayerStyle.transformOrigin = '0% 0%'; // Apply transform from top-left
+
                 prevPageBtn.disabled = currentPageNum <= 1;
                 nextPageBtn.disabled = currentPageNum >= totalPages;
 
@@ -870,7 +886,7 @@ Yêu cầu của tôi: ${aiPrompt}`;
         });
 
         fileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0]; // Get the File object directly
+            const file = event.target.files[0]; 
             if (!file) {
                 fileNameDisplay.textContent = "Chưa có file nào được chọn.";
                 documentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
@@ -896,7 +912,7 @@ Yêu cầu của tôi: ${aiPrompt}`;
                 return;
             }
             if (!indexedDB_db) {
-                await openDatabase(); // Ensure IndexedDB is open
+                await openDatabase(); 
             }
             if (!indexedDB_db) {
                 updateStatus('error-text', 'Lỗi: Không thể truy cập IndexedDB để lưu trữ file.', fileNameDisplay);
