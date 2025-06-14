@@ -38,54 +38,54 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Styles for content rendered into #documentViewer */
-        #documentViewer p {
+        /* Styles for content rendered into document viewers */
+        .document-content-area p {
             margin-bottom: 0.75rem; /* Space after paragraphs */
         }
-        #documentViewer h1 { 
+        .document-content-area h1 { 
             font-size: 2.5rem; 
             font-weight: bold; 
             margin-top: 1.5rem; 
             margin-bottom: 1rem; 
             color: #1a202c; /* gray-900 */
         }
-        #documentViewer h2 { 
+        .document-content-area h2 { 
             font-size: 2rem; 
             font-weight: bold; 
             margin-top: 1.25rem; 
             margin-bottom: 0.75rem; 
             color: #2d3748; /* gray-800 */
         }
-        #documentViewer h3 { 
+        .document-content-area h3 { 
             font-size: 1.5rem; 
             font-weight: bold; 
             margin-top: 1rem; 
             margin-bottom: 0.5rem; 
             color: #4a5568; /* gray-700 */
         }
-        #documentViewer ul, #documentViewer ol {
+        .document-content-area ul, .document-content-area ol {
             margin-left: 1.5rem;
             margin-bottom: 0.75rem;
         }
-        #documentViewer li {
+        .document-content-area li {
             margin-bottom: 0.25rem;
         }
-        #documentViewer table { 
+        .document-content-area table { 
             width: 100%; 
             border-collapse: collapse; 
             margin-bottom: 1rem; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Subtle shadow for tables */
         }
-        #documentViewer th, #documentViewer td { 
+        .document-content-area th, .document-content-area td { 
             border: 1px solid #e2e8f0; /* gray-200 */
             padding: 0.75rem; 
             text-align: left; 
         }
-        #documentViewer th {
+        .document-content-area th {
             background-color: #edf2f7; /* gray-100 */
             font-weight: 600;
         }
-        #documentViewer tr:nth-child(even) {
+        .document-content-area tr:nth-child(even) {
             background-color: #f7fafc; /* gray-50 */
         }
 
@@ -215,11 +215,8 @@
 
     <!-- Main Learning Center Content - Hidden by default -->
     <div id="mainContent" class="w-full max-w-6xl mx-auto flex flex-col md:grid md:grid-cols-3 gap-6 hidden-content">
-        <!-- Main Content Area - Document Viewer -->
-        <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4">
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">Nội dung tài liệu của bạn</h3>
-            
-            <!-- File Upload Section -->
+        <!-- File Upload Section & Saved Files List (remains at top) -->
+        <div class="md:col-span-3 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4 mb-4">
             <div class="flex flex-col sm:flex-row items-center gap-4 mb-4">
                 <label for="fileInput" class="relative cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-300 ease-in-out">
                     Chọn File (PDF/DOCX)
@@ -228,51 +225,69 @@
                 <span id="fileNameDisplay" class="text-gray-600 truncate max-w-xs">Chưa có file nào được chọn.</span>
             </div>
 
-            <!-- Saved Files List -->
             <div class="mb-4">
                 <h4 class="text-md font-semibold text-gray-700 mb-2">Tài liệu đã lưu (Cục bộ):</h4>
                 <div id="savedFilesList" class="flex flex-col gap-2 border border-gray-200 rounded-md p-2 max-h-40 overflow-y-auto bg-gray-50">
                     <p class="text-sm text-gray-500 text-center py-4">Đang tải...</p>
                 </div>
             </div>
-
-            <!-- PDF Page Navigation Controls (Initially hidden) -->
-            <div id="pdfPageControls" class="flex justify-center items-center gap-4 mb-4 mt-2 hidden-content">
-                <button id="prevPageBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out">Trang trước</button>
-                <span id="pageNumberDisplay" class="font-bold text-lg text-gray-700">1 / 1</span>
-                <button id="nextPageBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out">Trang tiếp</button>
-            </div>
-
-            <!-- Document Viewer -->
-            <div id="documentViewer" class="flex-grow rounded-md p-4 bg-gray-50 overflow-auto text-sm text-gray-700 relative">
-                <p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>
-                <!-- Content from PDF.js or mammoth.js will be rendered here -->
-            </div>
         </div>
 
-        <!-- AI Sidebar -->
-        <div id="aiSidebar" class="md:col-span-1 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4">
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">Tương tác với AI</h3>
-            
-            <!-- New: Selection-based AI buttons -->
-            <div id="selectionActionButtons" class="selection-action-buttons">
-                <button id="explainSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Giải thích (đã chọn)</button>
-                <button id="summarizeSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Tóm tắt (đã chọn)</button>
-                <button id="expandSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Mở rộng (đã chọn)</button>
+        <!-- Document Viewers & AI Sidebar -->
+        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Original Document Viewer -->
+            <div class="md:col-span-1 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4 document-content-area">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Nội dung gốc</h3>
+                
+                <!-- PDF Page Navigation Controls (Initially hidden) -->
+                <div id="pdfPageControls" class="flex justify-center items-center gap-4 mb-4 mt-2 hidden-content">
+                    <button id="prevPageBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out">Trang trước</button>
+                    <span id="pageNumberDisplay" class="font-bold text-lg text-gray-700">1 / 1</span>
+                    <button id="nextPageBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out">Trang tiếp</button>
+                    <button id="translateCurrentPageBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out ml-4 hidden-content">Dịch trang này</button>
+                </div>
+
+                <div id="originalDocumentViewer" class="flex-grow rounded-md p-4 bg-gray-50 overflow-auto text-sm text-gray-700 relative">
+                    <p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>
+                </div>
             </div>
 
-            <textarea id="promptInput" rows="4" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-base resize-y" placeholder="Nhập câu hỏi hoặc lệnh của bạn về nội dung (hoặc chọn văn bản để tương tác nhanh)..."></textarea>
-            
-            <button id="sendPromptButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-md shadow-md transition duration-300 ease-in-out flex items-center justify-center gap-2">
-                <span id="buttonText">Gửi yêu cầu tới Gemini</span>
-                <div id="buttonSpinner" class="spinner hidden"></div>
-            </button>
-            
-            <p id="statusMessage" class="text-sm font-semibold text-gray-600 text-center"></p>
+            <!-- Translated Document Viewer -->
+            <div id="translatedDocumentContainer" class="md:col-span-1 bg-white p-6 rounded-lg shadow-md flex-col gap-4 document-content-area hidden-content">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Bản dịch</h3>
+                <div id="translatedDocumentViewer" class="flex-grow rounded-md p-4 bg-gray-50 overflow-auto text-sm text-gray-700 relative">
+                    <p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>
+                </div>
+            </div>
 
-            <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Phản hồi từ Gemini:</h4>
-            <div id="responseContainer" class="min-h-[120px] p-4 border border-gray-300 bg-gray-50 rounded-md text-sm text-gray-700 flex items-center justify-center relative overflow-auto">
-                Chưa có phản hồi...
+            <!-- AI Sidebar -->
+            <div id="aiSidebar" class="md:col-span-1 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Tương tác với AI</h3>
+                
+                <!-- Selection-based AI buttons -->
+                <div id="selectionActionButtons" class="selection-action-buttons">
+                    <button id="explainSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Giải thích (đã chọn)</button>
+                    <button id="summarizeSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Tóm tắt (đã chọn)</button>
+                    <button id="expandSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Mở rộng (đã chọn)</button>
+                </div>
+
+                <textarea id="promptInput" rows="4" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-base resize-y" placeholder="Nhập câu hỏi hoặc lệnh của bạn về nội dung (hoặc chọn văn bản để tương tác nhanh)..."></textarea>
+                
+                <button id="sendPromptButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-md shadow-md transition duration-300 ease-in-out flex items-center justify-center gap-2">
+                    <span id="buttonText">Gửi yêu cầu tới Gemini</span>
+                    <div id="buttonSpinner" class="spinner hidden"></div>
+                </button>
+                
+                <p id="statusMessage" class="text-sm font-semibold text-gray-600 text-center"></p>
+                <!-- Quota Warning -->
+                <p id="quotaWarning" class="text-xs text-red-500 text-center mt-2 hidden-content">
+                    Lưu ý: Dịch trang sử dụng nhiều quota AI. Có thể bị giới hạn sau một số lần dịch.
+                </p>
+
+                <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Phản hồi từ Gemini:</h4>
+                <div id="responseContainer" class="min-h-[120px] p-4 border border-gray-300 bg-gray-50 rounded-md text-sm text-gray-700 flex items-center justify-center relative overflow-auto">
+                    Chưa có phản hồi...
+                </div>
             </div>
         </div>
     </div>
@@ -321,11 +336,10 @@
         let currentUserId = null; 
 
         // IndexedDB variables
-        let indexedDB_db = null; // Renamed to avoid conflict with Firestore 'db'
+        let indexedDB_db = null; 
         const DB_NAME = 'LearningCenterDB';
         const DB_VERSION = 1;
         const FILE_STORE_NAME = 'uploaded_files';
-        // Note: AI interactions will remain in Firestore for sync across devices
 
         // Lấy các phần tử HTML
         const emailInput = document.getElementById('emailInput');
@@ -340,7 +354,9 @@
 
         const fileInput = document.getElementById('fileInput');
         const fileNameDisplay = document.getElementById('fileNameDisplay');
-        const documentViewer = document.getElementById('documentViewer');
+        const originalDocumentViewer = document.getElementById('originalDocumentViewer'); // Renamed
+        const translatedDocumentContainer = document.getElementById('translatedDocumentContainer'); // New
+        const translatedDocumentViewer = document.getElementById('translatedDocumentViewer'); // New
         const promptInput = document.getElementById('promptInput');
         const sendPromptButton = document.getElementById('sendPromptButton');
         const buttonText = document.getElementById('buttonText');
@@ -358,10 +374,13 @@
         const prevPageBtn = document.getElementById('prevPageBtn');
         const nextPageBtn = document.getElementById('nextPageBtn');
         const pageNumberDisplay = document.getElementById('pageNumberDisplay');
+        const translateCurrentPageBtn = document.getElementById('translateCurrentPageBtn'); // New button
+        const quotaWarning = document.getElementById('quotaWarning'); // New warning element
 
-        let currentDocumentTextContent = ""; 
+        let currentDocumentTextContent = ""; // Full text of the loaded document
+        let currentPageTextContent = ""; // Text of the currently displayed PDF page
         let selectedTextForAI = ""; 
-        let currentFileId = null; // This will now be IndexedDB key for files
+        let currentFileId = null; 
 
         let pdfDocument = null; 
         let currentPageNum = 1;
@@ -458,14 +477,19 @@
                 logoutBtn.classList.add('hidden-content');
                 console.log("User logged out.");
                 
-                documentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+                originalDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+                translatedDocumentContainer.classList.add('hidden-content'); // Hide translated viewer
+                translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; // Clear translated viewer
                 fileNameDisplay.textContent = "Chưa có file nào được chọn.";
                 currentDocumentTextContent = "";
+                currentPageTextContent = ""; // Clear current page text
                 selectedTextForAI = "";
                 currentFileId = null; 
                 selectionActionButtons.classList.remove('active'); 
                 savedFilesList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Đăng nhập để xem tài liệu đã lưu.</p>'; 
                 pdfPageControls.classList.add('hidden-content'); 
+                translateCurrentPageBtn.classList.add('hidden-content'); // Hide translate button
+                quotaWarning.classList.add('hidden-content'); // Hide warning
                 pdfDocument = null; 
                 currentPageNum = 1;
                 totalPages = 1;
@@ -593,18 +617,23 @@
                 await openDatabase(); // Ensure database is open
             }
             if (!indexedDB_db) {
-                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Không thể truy cập IndexedDB.</p>`;
+                originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Không thể truy cập IndexedDB.</p>`;
                 updateStatus('error-text', 'Lỗi: Không thể truy cập IndexedDB.');
                 return;
             }
 
-            documentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang tải tài liệu từ IndexedDB...</p>';
+            originalDocumentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang tải tài liệu từ IndexedDB...</p>';
+            translatedDocumentContainer.classList.add('hidden-content'); // Hide translated viewer initially
+            translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; // Clear translated viewer
             fileNameDisplay.textContent = `Đang xem từ cục bộ...`;
-            currentFileId = fileId; // Set current file ID (IndexedDB key)
+            currentFileId = fileId; 
             currentDocumentTextContent = ""; 
+            currentPageTextContent = ""; // Clear current page text
             selectedTextForAI = "";
             selectionActionButtons.classList.remove('active');
             pdfPageControls.classList.add('hidden-content'); 
+            translateCurrentPageBtn.classList.add('hidden-content'); // Hide translate button
+            quotaWarning.classList.add('hidden-content'); // Hide warning
             pdfDocument = null; 
             currentPageNum = 1;
             totalPages = 1;
@@ -617,7 +646,7 @@
                 request.onsuccess = async (event) => {
                     const fileData = event.target.result;
                     if (!fileData) {
-                        documentViewer.innerHTML = `<p class="text-red-600 font-semibold">File không tìm thấy trong IndexedDB.</p>`;
+                        originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">File không tìm thấy trong IndexedDB.</p>`;
                         updateStatus('error-text', 'Lỗi: File không tìm thấy trong IndexedDB.');
                         return;
                     }
@@ -636,7 +665,7 @@
 
                         if (fileType === 'application/pdf') {
                             if (typeof pdfjsLib === 'undefined') {
-                                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
+                                originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
                                 updateStatus('error-text', `Lỗi: Thư viện PDF.js chưa được tải.`);
                             } else {
                                 const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
@@ -644,6 +673,7 @@
                                 totalPages = pdfDocument.numPages;
                                 currentPageNum = 1; 
 
+                                // Extract ALL text content for AI in background
                                 let fullPdfText = [];
                                 for (let i = 1; i <= totalPages; i++) {
                                     const page = await pdfDocument.getPage(i);
@@ -655,28 +685,35 @@
 
                                 renderPdfPage(currentPageNum);
                                 pdfPageControls.classList.remove('hidden-content');
+                                translateCurrentPageBtn.classList.remove('hidden-content'); // Show translate button
+                                quotaWarning.classList.remove('hidden-content'); // Show warning
+                                translatedDocumentContainer.classList.remove('hidden-content'); // Show translated viewer
                                 updateStatus('success-text', `Đã tải file PDF "${fileName}" từ IndexedDB và hiển thị.`);
                             }
                         } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
                             if (typeof window.mammoth === 'undefined') {
-                                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
+                                originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
                                 updateStatus('error-text', `Lỗi: Thư viện mammoth.js chưa được tải.`);
                             } else {
                                 try {
                                     const result = await window.mammoth.convertToHtml({arrayBuffer: arrayBuffer});
                                     convertedHtmlForDocx = result.value;
                                     plainTextContent = convertedHtmlForDocx.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-                                    documentViewer.innerHTML = convertedHtmlForDocx;
+                                    originalDocumentViewer.innerHTML = convertedHtmlForDocx;
+                                    translatedDocumentContainer.classList.add('hidden-content'); // Hide translated viewer for DOCX
+                                    pdfPageControls.classList.add('hidden-content'); // Hide PDF controls for DOCX
+                                    translateCurrentPageBtn.classList.add('hidden-content'); // Hide translate button for DOCX
+                                    quotaWarning.classList.add('hidden-content'); // Hide warning for DOCX
                                     updateStatus('success-text', `Đã tải file DOCX "${fileName}" từ IndexedDB và hiển thị.`);
                                 } catch (mammothError) {
                                     console.error("Lỗi khi chuyển đổi DOCX từ IndexedDB:", mammothError);
-                                    documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}</p>`;
+                                    originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}</p>`;
                                     plainTextContent = `Lỗi khi xử lý DOCX từ IndexedDB.`;
                                     updateStatus('error-text', `Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}.`);
                                 }
                             }
                         } else {
-                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${fileType}</p>`;
+                            originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${fileType}</p>`;
                             plainTextContent = `Định dạng file không được hỗ trợ.`;
                             updateStatus('error-text', `Lỗi: Định dạng file không được hỗ trợ "${fileType}".`);
                         }
@@ -691,12 +728,12 @@
 
                 request.onerror = (event) => {
                     console.error("Error retrieving file from IndexedDB:", event.target.errorCode);
-                    documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi tải file từ IndexedDB: ${event.target.errorCode}</p>`;
+                    originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi tải file từ IndexedDB: ${event.target.errorCode}</p>`;
                     updateStatus('error-text', `Lỗi khi tải file từ IndexedDB.`);
                 };
             } catch (error) {
                 console.error("Lỗi tải file từ IndexedDB:", error);
-                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi tải file từ IndexedDB: ${error.message}</p>`;
+                originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi tải file từ IndexedDB: ${error.message}</p>`;
                 updateStatus('error-text', `Lỗi tải file từ IndexedDB: ${error.message}`);
             }
         }
@@ -707,7 +744,7 @@
         // ===============================================
         
         // 5. Hàm gửi yêu cầu và hiển thị phản hồi
-        async function callGeminiAPI(aiPrompt, contextText = "") {
+        async function callGeminiAPI(aiPrompt, contextText = "", targetViewer = responseContainer) { // Added targetViewer
             if (!model) {
                 updateStatus('error-text', "Mô hình AI chưa được khởi tạo. Vui lòng kiểm tra console để biết lỗi.");
                 return;
@@ -716,8 +753,8 @@
                 updateStatus('error-text', 'Vui lòng đăng nhập để sử dụng tính năng AI.', authStatus);
                 return;
             }
-            if (!currentDocumentTextContent && !selectedTextForAI) { 
-                 updateStatus('error-text', 'Vui lòng tải lên một tài liệu để tương tác với AI.');
+            if (!currentDocumentTextContent && !selectedTextForAI && !currentPageTextContent) { // Check all relevant contexts
+                 updateStatus('error-text', 'Vui lòng tải lên một tài liệu hoặc chọn văn bản để tương tác với AI.');
                  return;
             }
 
@@ -735,18 +772,23 @@ Nội dung: ${contextText}
 Yêu cầu của tôi: ${aiPrompt}`;
             }
 
-            updateStatus('info-text', "Đang gửi yêu cầu đến Gemini...");
-            responseContainer.innerHTML = '<div class="large-spinner mx-auto my-4"></div>'; 
-            responseContainer.classList.add('bg-gray-100'); 
-            responseContainer.classList.remove('bg-gray-50'); 
+            // Show loading in the target viewer
+            targetViewer.innerHTML = '<div class="large-spinner mx-auto my-4"></div>'; 
+            targetViewer.classList.add('bg-gray-100'); 
+            targetViewer.classList.remove('bg-gray-50'); 
             
-            buttonText.textContent = 'Đang gửi...';
-            buttonSpinner.classList.remove('hidden');
-            sendPromptButton.disabled = true;
-            promptInput.disabled = true; 
-            explainSelectedBtn.disabled = true;
-            summarizeSelectedBtn.disabled = true;
-            expandSelectedBtn.disabled = true;
+            // Only update main status/buttons if it's the main response container
+            if (targetViewer === responseContainer) {
+                buttonText.textContent = 'Đang gửi...';
+                buttonSpinner.classList.remove('hidden');
+                sendPromptButton.disabled = true;
+                promptInput.disabled = true; 
+                explainSelectedBtn.disabled = true;
+                summarizeSelectedBtn.disabled = true;
+                expandSelectedBtn.disabled = true;
+            }
+            updateStatus('info-text', "Đang gửi yêu cầu đến Gemini...");
+
 
             console.log("Sending prompt to Gemini:", fullPrompt);
 
@@ -755,39 +797,40 @@ Yêu cầu của tôi: ${aiPrompt}`;
                 const response = result.response;
                 const text = response.text();
                 
-                responseContainer.innerText = text; 
-                responseContainer.classList.remove('bg-gray-100');
-                responseContainer.classList.add('bg-gray-50');
+                targetViewer.innerText = text; 
+                targetViewer.classList.remove('bg-gray-100');
+                targetViewer.classList.add('bg-gray-50');
                 updateStatus('success-text', "Đã nhận phản hồi từ Gemini.");
                 console.log("Response text:", text);
 
                 // --- Save AI interaction to Firestore ---
-                // AI interactions still saved in Firestore for cross-device sync
                 if (currentUserId) {
                     await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/ai_interactions`), {
                         prompt: aiPrompt,
                         response: text,
                         contextUsed: contextText.substring(0, Math.min(contextText.length, 500)) + (contextText.length > 500 ? '...' : ''), 
                         timestamp: serverTimestamp(),
-                        fileId: currentFileId // Link to the currently viewed file (IndexedDB key)
+                        fileId: currentFileId 
                     });
                     console.log("AI interaction saved to Firestore.");
                 }
 
             } catch (error) {
                 console.error("Lỗi khi gọi Gemini API:", error);
-                responseContainer.innerText = `Lỗi: ${error.message}. Vui lòng kiểm tra Console (F12) để biết thêm chi tiết.`;
-                responseContainer.classList.remove('bg-gray-100');
-                responseContainer.classList.add('bg-gray-50');
+                targetViewer.innerText = `Lỗi: ${error.message}.`;
+                targetViewer.classList.remove('bg-gray-100');
+                targetViewer.classList.add('bg-gray-50');
                 updateStatus('error-text', `Lỗi khi gọi Gemini API: ${error.message}.`);
             } finally {
-                buttonText.textContent = 'Gửi yêu cầu tới Gemini';
-                buttonSpinner.classList.add('hidden');
-                sendPromptButton.disabled = false;
-                promptInput.disabled = false; 
-                explainSelectedBtn.disabled = false;
-                summarizeSelectedBtn.disabled = false;
-                expandSelectedBtn.disabled = false;
+                if (targetViewer === responseContainer) {
+                    buttonText.textContent = 'Gửi yêu cầu tới Gemini';
+                    buttonSpinner.classList.add('hidden');
+                    sendPromptButton.disabled = false;
+                    promptInput.disabled = false; 
+                    explainSelectedBtn.disabled = false;
+                    summarizeSelectedBtn.disabled = false;
+                    expandSelectedBtn.disabled = false;
+                }
             }
         }
 
@@ -813,12 +856,12 @@ Yêu cầu của tôi: ${aiPrompt}`;
             currentPageNum = pageNum;
             pageNumberDisplay.textContent = `${currentPageNum} / ${totalPages}`;
             
-            documentViewer.innerHTML = '';
-            documentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang tải trang...</p>';
+            originalDocumentViewer.innerHTML = '';
+            originalDocumentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang tải trang...</p>';
 
             try {
                 const page = await pdfDocument.getPage(pageNum);
-                const viewerWidth = documentViewer.clientWidth - 32; 
+                const viewerWidth = originalDocumentViewer.clientWidth - 32; 
                 const viewport = page.getViewport({ scale: 1 });
                 const scale = viewerWidth / viewport.width;
                 const scaledViewport = page.getViewport({ scale: scale });
@@ -838,8 +881,8 @@ Yêu cầu của tôi: ${aiPrompt}`;
                 textLayerDiv.className = 'textLayer';
                 pageWrapper.appendChild(textLayerDiv);
 
-                documentViewer.innerHTML = ''; 
-                documentViewer.appendChild(pageWrapper);
+                originalDocumentViewer.innerHTML = ''; 
+                originalDocumentViewer.appendChild(pageWrapper);
 
                 await page.render({
                     canvasContext: context,
@@ -851,23 +894,27 @@ Yêu cầu của tôi: ${aiPrompt}`;
                     textContent: textContent,
                     container: textLayerDiv,
                     viewport: scaledViewport,
-                    textDivs: []
+                    textDivs: [] // Important: pass an empty array to renderTextLayer for initial render
                 }).promise;
 
                 // Update text layer scale and position to match canvas
-                // This is crucial for correct text selection/copy
                 const textLayerStyle = textLayerDiv.style;
                 const scaleX = scaledViewport.width / viewport.width;
                 const scaleY = scaledViewport.height / viewport.height;
                 textLayerStyle.transform = `scale(${scaleX}, ${scaleY})`;
-                textLayerStyle.transformOrigin = '0% 0%'; // Apply transform from top-left
+                textLayerStyle.transformOrigin = '0% 0%'; 
+                textLayerDiv.style.width = `${viewport.width}px`; // Set original width
+                textLayerDiv.style.height = `${viewport.height}px`; // Set original height
+
+                // Update currentPageTextContent
+                currentPageTextContent = textContent.items.map(item => item.str).join(' ');
 
                 prevPageBtn.disabled = currentPageNum <= 1;
                 nextPageBtn.disabled = currentPageNum >= totalPages;
 
             } catch (error) {
                 console.error("Error rendering PDF page:", error);
-                documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi hiển thị trang PDF: ${error.message}</p>`;
+                originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi hiển thị trang PDF: ${error.message}</p>`;
                 updateStatus('error-text', `Lỗi hiển thị PDF: ${error.message}`);
             }
         }
@@ -876,25 +923,48 @@ Yêu cầu của tôi: ${aiPrompt}`;
         prevPageBtn.addEventListener('click', () => {
             if (currentPageNum > 1) {
                 renderPdfPage(currentPageNum - 1);
+                translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; // Clear translated view on page change
             }
         });
 
         nextPageBtn.addEventListener('click', () => {
             if (currentPageNum < totalPages) {
                 renderPdfPage(currentPageNum + 1);
+                translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; // Clear translated view on page change
             }
         });
+        
+        // NEW: Event listener for Translate Current Page button
+        translateCurrentPageBtn.addEventListener('click', async () => {
+            if (currentPageTextContent) {
+                const prompt = `Dịch đoạn văn bản tiếng Anh sau đây sang tiếng Việt. Giữ nguyên định dạng nếu có thể (ví dụ: các đoạn văn, danh sách):
+---
+Nội dung: ${currentPageTextContent}
+---`;
+                // Call Gemini API and target the translatedDocumentViewer
+                await callGeminiAPI(prompt, currentPageTextContent, translatedDocumentViewer);
+            } else {
+                translatedDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Không có văn bản trên trang này để dịch.</p>`;
+                updateStatus('error-text', "Không có văn bản trên trang hiện tại để dịch.", translatedDocumentViewer);
+            }
+        });
+
 
         fileInput.addEventListener('change', async (event) => {
             const file = event.target.files[0]; 
             if (!file) {
                 fileNameDisplay.textContent = "Chưa có file nào được chọn.";
-                documentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+                originalDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+                translatedDocumentContainer.classList.add('hidden-content'); // Hide translated viewer
+                translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; // Clear translated viewer
                 currentDocumentTextContent = ""; 
+                currentPageTextContent = ""; // Clear current page text
                 selectedTextForAI = ""; 
                 selectionActionButtons.classList.remove('active'); 
                 currentFileId = null;
                 pdfPageControls.classList.add('hidden-content'); 
+                translateCurrentPageBtn.classList.add('hidden-content'); // Hide translate button
+                quotaWarning.classList.add('hidden-content'); // Hide warning
                 pdfDocument = null; 
                 currentPageNum = 1;
                 totalPages = 1;
@@ -906,6 +976,8 @@ Yêu cầu của tôi: ${aiPrompt}`;
                 event.target.value = ''; 
                 currentFileId = null;
                 pdfPageControls.classList.add('hidden-content'); 
+                translateCurrentPageBtn.classList.add('hidden-content'); // Hide translate button
+                quotaWarning.classList.add('hidden-content'); // Hide warning
                 pdfDocument = null; 
                 currentPageNum = 1;
                 totalPages = 1;
@@ -922,17 +994,21 @@ Yêu cầu của tôi: ${aiPrompt}`;
 
             fileNameDisplay.textContent = `Đang tải: ${file.name}`;
             updateStatus('info-text', `Đang xử lý file "${file.name}"...`);
-            documentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang đọc và hiển thị nội dung...</p>';
+            originalDocumentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang đọc và hiển thị nội dung...</p>';
+            translatedDocumentContainer.classList.add('hidden-content'); // Hide translated viewer initially
+            translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; // Clear translated viewer
             currentDocumentTextContent = ""; 
+            currentPageTextContent = ""; // Clear current page text
             selectedTextForAI = ""; 
             selectionActionButtons.classList.remove('active'); 
             currentFileId = null; 
             pdfPageControls.classList.add('hidden-content'); 
+            translateCurrentPageBtn.classList.add('hidden-content'); // Hide translate button
+            quotaWarning.classList.add('hidden-content'); // Hide warning
             pdfDocument = null; 
             currentPageNum = 1;
             totalPages = 1;
 
-            // Use FileReader to get ArrayBuffer for immediate display and text extraction
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const arrayBuffer = e.target.result;
@@ -941,7 +1017,7 @@ Yêu cầu của tôi: ${aiPrompt}`;
 
                 if (file.type === 'application/pdf') {
                     if (typeof pdfjsLib === 'undefined') {
-                        documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
+                        originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
                         plainTextContent = `Lỗi: Thư viện PDF.js chưa được tải.`;
                         updateStatus('error-text', `Lỗi: Thư viện PDF.js chưa được tải.`);
                     } else {
@@ -961,11 +1037,14 @@ Yêu cầu của tôi: ${aiPrompt}`;
 
                         renderPdfPage(currentPageNum); 
                         pdfPageControls.classList.remove('hidden-content'); 
+                        translateCurrentPageBtn.classList.remove('hidden-content'); // Show translate button
+                        quotaWarning.classList.remove('hidden-content'); // Show warning
+                        translatedDocumentContainer.classList.remove('hidden-content'); // Show translated viewer
                         updateStatus('success-text', `Đã tải file PDF "${file.name}" và hiển thị.`);
                     }
                 } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
                     if (typeof window.mammoth === 'undefined') { 
-                        documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
+                        originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
                         plainTextContent = `Lỗi: Thư viện mammoth.js chưa được tải.`;
                         updateStatus('error-text', `Lỗi: Thư viện mammoth.js chưa được tải.`);
                     } else {
@@ -973,7 +1052,11 @@ Yêu cầu của tôi: ${aiPrompt}`;
                             const result = await window.mammoth.convertToHtml({arrayBuffer: arrayBuffer}); 
                             convertedHtmlForDocx = result.value; 
                             plainTextContent = convertedHtmlForDocx.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-                            documentViewer.innerHTML = convertedHtmlForDocx; 
+                            originalDocumentViewer.innerHTML = convertedHtmlForDocx; 
+                            translatedDocumentContainer.classList.add('hidden-content'); // Hide translated viewer for DOCX
+                            pdfPageControls.classList.add('hidden-content'); // Hide PDF controls for DOCX
+                            translateCurrentPageBtn.classList.add('hidden-content'); // Hide translate button for DOCX
+                            quotaWarning.classList.add('hidden-content'); // Hide warning for DOCX
                             updateStatus('success-text', `Đã tải file DOCX "${file.name}" và chuyển đổi sang HTML.`);
 
                             if (result.messages.length > 0) {
@@ -982,13 +1065,13 @@ Yêu cầu của tôi: ${aiPrompt}`;
 
                         } catch (mammothError) {
                             console.error("Lỗi khi chuyển đổi DOCX bằng mammoth.js:", mammothError);
-                            documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX: ${mammothError.message}</p>`;
+                            originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX: ${mammothError.message}</p>`;
                             plainTextContent = `Lỗi khi xử lý DOCX.`;
                             updateStatus('error-text', `Lỗi khi xử lý DOCX: ${mammothError.message}.`);
                         }
                     }
                 } else {
-                    documentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${file.type}</p>`;
+                    originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${file.type}</p>`;
                     plainTextContent = `Định dạng file không được hỗ trợ.`;
                     updateStatus('error-text', `Lỗi: Định dạng file không được hỗ trợ "${file.type}".`); 
                 }
@@ -1030,28 +1113,30 @@ Yêu cầu của tôi: ${aiPrompt}`;
                     updateStatus('error-text', `Lỗi khi lưu file cục bộ: ${indexedDBError.message}.`, fileNameDisplay);
                 }
             };
-            reader.readAsArrayBuffer(file); // Keep reading as ArrayBuffer for immediate display
+            reader.readAsArrayBuffer(file); 
         });
 
         // ===============================================
         // Logic lựa chọn văn bản (Updated for Mobile-Friendly)
         // ===============================================
 
-        documentViewer.addEventListener('mouseup', handleTextSelection);
-        documentViewer.addEventListener('touchend', handleTextSelection);
+        originalDocumentViewer.addEventListener('mouseup', handleTextSelection); // Attach to original viewer
+        originalDocumentViewer.addEventListener('touchend', handleTextSelection); // Attach to original viewer
 
         function handleTextSelection() {
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
             
-            if (selectedText.length > 0 && auth.currentUser && documentViewer.contains(selection.anchorNode) && documentViewer.contains(selection.focusNode)) {
+            // Ensure text is selected and it's within the original document viewer
+            if (selectedText.length > 0 && auth.currentUser && originalDocumentViewer.contains(selection.anchorNode) && originalDocumentViewer.contains(selection.focusNode)) {
                 selectedTextForAI = selectedText; 
                 selectionActionButtons.classList.add('active'); 
                 console.log("Text selected for AI:", selectedTextForAI);
             } else {
                 selectedTextForAI = ""; 
                 selectionActionButtons.classList.remove('active'); 
-                if (selection.rangeCount > 0 && !documentViewer.contains(selection.anchorNode) && !selectionActionButtons.contains(event.target)) {
+                // Clear the selection if it's not within the original viewer or if nothing is selected
+                if (selection.rangeCount > 0 && (!originalDocumentViewer.contains(selection.anchorNode) || selectedText.length === 0) && !selectionActionButtons.contains(event.target)) {
                     selection.removeAllRanges();
                 }
             }
@@ -1090,7 +1175,7 @@ Yêu cầu của tôi: ${aiPrompt}`;
             }
         });
         
-        documentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+        originalDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
     </script>
 </body>
 </html>
