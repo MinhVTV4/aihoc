@@ -194,8 +194,10 @@
     </script>
     <!-- Thư viện Mammoth.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth.js/1.6.0/mammoth.browser.min.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body class="min-h-screen bg-gray-100 text-gray-800 flex flex-col items-center p-4 font-sans">
+<body class="min-h-screen bg-gray-100 text-gray-800 flex flex-col items-center font-sans"> <!-- Removed p-4 here -->
     <h1 class="text-3xl md:text-4xl font-bold text-blue-700 text-center mb-4 mt-6">Trung Tâm Học Tập Thông Minh</h1>
     <h2 class="text-md md:text-lg text-blue-600 text-center mb-6">(Tích hợp AI Gemini 2.0 Flash)</h2>
 
@@ -214,9 +216,10 @@
     </div>
 
     <!-- Main Learning Center Content - Hidden by default -->
-    <div id="mainContent" class="w-full mx-auto flex flex-col md:grid md:grid-cols-12 gap-6 p-4 hidden-content"> <!-- Changed max-w-6xl to w-full and added p-4 here instead of body -->
-        <!-- File Upload Section & Saved Files List (remains at top) -->
-        <div class="md:col-span-12 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4 mb-4">
+    <!-- Removed md:grid-cols-12 and p-4 from here, using flex and p-4 on direct children for full width -->
+    <div id="mainContent" class="w-full mx-auto flex flex-col md:flex-row gap-6 p-4 hidden-content"> 
+        <!-- File Upload Section & Saved Files List (now a separate block, spans full width) -->
+        <div class="w-full md:w-auto bg-white p-6 rounded-lg shadow-md flex flex-col gap-4 mb-4 md:mb-0">
             <div class="flex flex-col sm:flex-row items-center gap-4 mb-4">
                 <label for="fileInput" class="relative cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-300 ease-in-out">
                     Chọn File (PDF/DOCX)
@@ -233,10 +236,10 @@
             </div>
         </div>
 
-        <!-- Document Viewers & AI Sidebar -->
-        <div class="md:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-6"> <!-- Changed md:grid-cols-3 to md:grid-cols-12 -->
+        <!-- Document Viewers (take up remaining space, 1:1 ratio) -->
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6"> <!-- New grid for two document viewers -->
             <!-- Original Document Viewer -->
-            <div class="md:col-span-5 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4 document-content-area"> <!-- Changed md:col-span-1 to md:col-span-5 -->
+            <div class="bg-white p-6 rounded-lg shadow-md flex flex-col gap-4 document-content-area">
                 <h3 class="text-xl font-semibold text-gray-700 mb-4">Nội dung gốc</h3>
                 
                 <!-- PDF Page Navigation Controls (Initially hidden) -->
@@ -253,44 +256,57 @@
             </div>
 
             <!-- Translated Document Viewer -->
-            <div id="translatedDocumentContainer" class="md:col-span-4 bg-white p-6 rounded-lg shadow-md flex-col gap-4 document-content-area hidden-content"> <!-- Changed md:col-span-1 to md:col-span-4 -->
+            <div id="translatedDocumentContainer" class="bg-white p-6 rounded-lg shadow-md flex-col gap-4 document-content-area hidden-content">
                 <h3 class="text-xl font-semibold text-gray-700 mb-4">Bản dịch</h3>
                 <div id="translatedDocumentViewer" class="flex-grow rounded-md p-4 bg-gray-50 overflow-auto text-sm text-gray-700 relative">
                     <p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>
                 </div>
             </div>
-
-            <!-- AI Sidebar -->
-            <div id="aiSidebar" class="md:col-span-3 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4"> <!-- Changed md:col-span-1 to md:col-span-3 -->
-                <h3 class="text-xl font-semibold text-gray-700 mb-4">Tương tác với AI</h3>
-                
-                <!-- Selection-based AI buttons -->
-                <div id="selectionActionButtons" class="selection-action-buttons">
-                    <button id="explainSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Giải thích (đã chọn)</button>
-                    <button id="summarizeSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Tóm tắt (đã chọn)</button>
-                    <button id="expandSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Mở rộng (đã chọn)</button>
-                </div>
-
-                <textarea id="promptInput" rows="4" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-base resize-y" placeholder="Nhập câu hỏi hoặc lệnh của bạn về nội dung (hoặc chọn văn bản để tương tác nhanh)..."></textarea>
-                
-                <button id="sendPromptButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-md shadow-md transition duration-300 ease-in-out flex items-center justify-center gap-2">
-                    <span id="buttonText">Gửi yêu cầu tới Gemini</span>
-                    <div id="buttonSpinner" class="spinner hidden"></div>
-                </button>
-                
-                <p id="statusMessage" class="text-sm font-semibold text-gray-600 text-center"></p>
-                <!-- Quota Warning -->
-                <p id="quotaWarning" class="text-xs text-red-500 text-center mt-2 hidden-content">
-                    Lưu ý: Dịch trang sử dụng nhiều quota AI. Có thể bị giới hạn sau một số lần dịch.
-                </p>
-
-                <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Phản hồi từ Gemini:</h4>
-                <div id="responseContainer" class="min-h-[120px] p-4 border border-gray-300 bg-gray-50 rounded-md text-sm text-gray-700 flex items-center justify-center relative overflow-auto">
-                    Chưa có phản hồi...
-                </div>
-            </div>
         </div>
     </div>
+
+    <!-- AI Sidebar (Fixed position, slide-out) -->
+    <div id="aiSidebar" class="fixed top-0 right-0 h-screen w-full md:w-96 bg-white p-6 rounded-l-lg shadow-xl flex flex-col gap-4 transform translate-x-full transition-transform duration-300 ease-in-out z-50 overflow-y-auto">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Tương tác với AI</h3>
+        
+        <!-- Close button for the sidebar -->
+        <button id="closeAiSidebarBtn" class="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full text-sm">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <!-- Selection-based AI buttons -->
+        <div id="selectionActionButtons" class="selection-action-buttons">
+            <button id="explainSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Giải thích (đã chọn)</button>
+            <button id="summarizeSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Tóm tắt (đã chọn)</button>
+            <button id="expandSelectedBtn" class="bg-emerald-500 hover:bg-emerald-600">Mở rộng (đã chọn)</button>
+        </div>
+
+        <textarea id="promptInput" rows="4" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-base resize-y" placeholder="Nhập câu hỏi hoặc lệnh của bạn về nội dung (hoặc chọn văn bản để tương tác nhanh)..."></textarea>
+        
+        <button id="sendPromptButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-md shadow-md transition duration-300 ease-in-out flex items-center justify-center gap-2">
+            <span id="buttonText">Gửi yêu cầu tới Gemini</span>
+            <div id="buttonSpinner" class="spinner hidden"></div>
+        </button>
+        
+        <p id="statusMessage" class="text-sm font-semibold text-gray-600 text-center"></p>
+        <!-- Quota Warning -->
+        <p id="quotaWarning" class="text-xs text-red-500 text-center mt-2 hidden-content">
+            Lưu ý: Dịch trang sử dụng nhiều quota AI. Có thể bị giới hạn sau một số lần dịch.
+        </p>
+
+        <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Phản hồi từ Gemini:</h4>
+        <div id="responseContainer" class="min-h-[120px] p-4 border border-gray-300 bg-gray-50 rounded-md text-sm text-gray-700 flex items-center justify-center relative overflow-auto">
+            Chưa có phản hồi...
+        </div>
+    </div>
+
+    <!-- AI Sidebar Toggle Button (Fixed position) -->
+    <button id="toggleAiSidebarBtn" class="fixed bottom-4 right-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-5 rounded-full shadow-lg z-40 hidden-content">
+        AI <i class="fas fa-robot"></i>
+    </button>
+
+    <!-- Backdrop for AI Sidebar (Hidden by default) -->
+    <div id="aiSidebarBackdrop" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden-content"></div>
 
     <!-- Firebase SDKs -->
     <script type="module">
@@ -353,7 +369,7 @@
         let userIdDisplay = document.getElementById('userIdDisplay'); 
 
         let fileInput = document.getElementById('fileInput');
-        let fileNameDisplay = document.getElementById('fileNameDisplay'); // Fixed typo from 'fileName' to 'fileNameDisplay'
+        let fileNameDisplay = document.getElementById('fileNameDisplay'); 
         let originalDocumentViewer = document.getElementById('originalDocumentViewer'); 
         let translatedDocumentContainer = document.getElementById('translatedDocumentContainer'); 
         let translatedDocumentViewer = document.getElementById('translatedDocumentViewer'); 
@@ -376,6 +392,13 @@
         let pageNumberDisplay = document.getElementById('pageNumberDisplay');
         let translateCurrentPageBtn = document.getElementById('translateCurrentPageBtn'); 
         let quotaWarning = document.getElementById('quotaWarning'); 
+
+        // NEW: Sidebar toggle elements
+        let aiSidebar = document.getElementById('aiSidebar');
+        let closeAiSidebarBtn = document.getElementById('closeAiSidebarBtn');
+        let toggleAiSidebarBtn = document.getElementById('toggleAiSidebarBtn');
+        let aiSidebarBackdrop = document.getElementById('aiSidebarBackdrop');
+
 
         let currentDocumentTextContent = ""; 
         let currentPageTextContent = ""; 
@@ -473,6 +496,7 @@
                 if (authForm) authForm.classList.add('hidden-content');
                 if (mainContent) mainContent.classList.remove('hidden-content');
                 if (logoutBtn) logoutBtn.classList.remove('hidden-content');
+                if (toggleAiSidebarBtn) toggleAiSidebarBtn.classList.remove('hidden-content'); // Show AI toggle button on login
                 console.log("User logged in:", user.email, "UID:", currentUserId);
                 
                 // Load user's saved files from IndexedDB
@@ -486,11 +510,13 @@
                 if (authForm) authForm.classList.remove('hidden-content');
                 if (mainContent) mainContent.classList.add('hidden-content');
                 if (logoutBtn) logoutBtn.classList.add('hidden-content');
+                if (toggleAiSidebarBtn) toggleAiSidebarBtn.classList.add('hidden-content'); // Hide AI toggle button on logout
+                closeAiSidebar(); // Close sidebar if open on logout
                 console.log("User logged out.");
                 
                 if (originalDocumentViewer) originalDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
-                if (translatedDocumentContainer) translatedDocumentContainer.classList.add('hidden-content'); // Hide translated viewer
-                if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; // Clear translated viewer
+                if (translatedDocumentContainer) translatedDocumentContainer.classList.add('hidden-content'); 
+                if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; 
                 if (fileNameDisplay) fileNameDisplay.textContent = "Chưa có file nào được chọn.";
                 currentDocumentTextContent = "";
                 currentPageTextContent = ""; 
@@ -572,7 +598,7 @@
          */
         async function loadSavedFilesFromIndexedDB() {
             if (!indexedDB_db) {
-                await openDatabase(); // Ensure database is open
+                await openDatabase(); 
             }
             if (!indexedDB_db) {
                 if (savedFilesList) savedFilesList.innerHTML = '<p class="text-sm text-red-600 text-center py-4">Lỗi: Không thể truy cập IndexedDB.</p>';
@@ -581,23 +607,22 @@
 
             const transaction = indexedDB_db.transaction([FILE_STORE_NAME], 'readonly');
             const objectStore = transaction.objectStore(FILE_STORE_NAME);
-            const request = objectStore.getAll(); // Get all files
+            const request = objectStore.getAll(); 
 
             request.onsuccess = (event) => {
-                if (savedFilesList) savedFilesList.innerHTML = ''; // Clear existing list
+                if (savedFilesList) savedFilesList.innerHTML = ''; 
                 const files = event.target.result;
                 if (files.length === 0) {
                     if (savedFilesList) savedFilesList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Bạn chưa có tài liệu nào được lưu cục bộ.</p>';
                     return;
                 }
 
-                // Sort files by uploadedAt if available, otherwise just display
                 files.sort((a, b) => (b.uploadedAt || 0) - (a.uploadedAt || 0));
 
                 files.forEach(fileData => {
                     const fileItem = document.createElement('div');
                     fileItem.className = 'saved-file-item';
-                    fileItem.dataset.fileId = fileData.id; // Use IndexedDB key as ID
+                    fileItem.dataset.fileId = fileData.id; 
                     
                     const date = fileData.uploadedAt ? new Date(fileData.uploadedAt) : new Date();
                     const formattedDate = date.toLocaleDateString('vi-VN', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -875,8 +900,7 @@ Yêu cầu của tôi: ${aiPrompt}`;
 
             try {
                 const page = await pdfDocument.getPage(pageNum);
-                // Ensure originalDocumentViewer exists before getting clientWidth
-                const viewerWidth = originalDocumentViewer ? originalDocumentViewer.clientWidth - 32 : 600; // Default if not found
+                const viewerWidth = originalDocumentViewer ? originalDocumentViewer.clientWidth - 32 : 600; 
                 const viewport = page.getViewport({ scale: 1 });
                 const scale = viewerWidth / viewport.width;
                 const scaledViewport = page.getViewport({ scale: scale });
@@ -1183,6 +1207,24 @@ Nội dung: ${currentPageTextContent}
         });
         
         if (originalDocumentViewer) originalDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+
+        // ===============================================
+        // NEW: AI Sidebar Toggle Logic
+        // ===============================================
+
+        function openAiSidebar() {
+            if (aiSidebar) aiSidebar.classList.remove('translate-x-full');
+            if (aiSidebarBackdrop) aiSidebarBackdrop.classList.remove('hidden-content');
+        }
+
+        function closeAiSidebar() {
+            if (aiSidebar) aiSidebar.classList.add('translate-x-full');
+            if (aiSidebarBackdrop) aiSidebarBackdrop.classList.add('hidden-content');
+        }
+
+        if (toggleAiSidebarBtn) toggleAiSidebarBtn.addEventListener('click', openAiSidebar);
+        if (closeAiSidebarBtn) closeAiSidebarBtn.addEventListener('click', closeAiSidebar);
+        if (aiSidebarBackdrop) aiSidebarBackdrop.addEventListener('click', closeAiSidebar); // Close sidebar when clicking backdrop
     </script>
 </body>
 </html>
