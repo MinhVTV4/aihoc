@@ -196,6 +196,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth.js/1.6.0/mammoth.browser.min.js"></script>
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Marked.js for Markdown to HTML conversion -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body class="min-h-screen bg-gray-100 text-gray-800 flex flex-col items-center font-sans"> <!-- Removed p-4 here -->
     <h1 class="text-3xl md:text-4xl font-bold text-blue-700 text-center mb-4 mt-6">Trung Tâm Học Tập Thông Minh</h1>
@@ -582,7 +584,7 @@
         logoutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                updateStatus('info-info', 'Đã đăng xuất.', authStatus); // Changed 'info-text' to 'info-info'
+                updateStatus('info-info', 'Đã đăng xuất.', authStatus); 
             } catch (error) {
                 console.error("Lỗi đăng xuất:", error);
                 updateStatus('error-text', `Lỗi đăng xuất: ${error.message}`, authStatus);
@@ -834,7 +836,13 @@ Yêu cầu của tôi: ${aiPrompt}`;
                 const response = result.response;
                 const text = response.text();
                 
-                if (targetViewer) targetViewer.innerText = text; 
+                // NEW: Use marked.js if targetViewer is translatedDocumentViewer
+                if (targetViewer === translatedDocumentViewer && typeof marked !== 'undefined') {
+                    targetViewer.innerHTML = marked.parse(text); 
+                } else if (targetViewer) {
+                    targetViewer.innerText = text; 
+                }
+
                 if (targetViewer) {
                     targetViewer.classList.remove('bg-gray-100');
                     targetViewer.classList.add('bg-gray-50');
@@ -972,7 +980,7 @@ Yêu cầu của tôi: ${aiPrompt}`;
         
         if (translateCurrentPageBtn) translateCurrentPageBtn.addEventListener('click', async () => {
             if (currentPageTextContent) {
-                const prompt = `Dịch đoạn văn bản tiếng Anh sau đây sang tiếng Việt. Giữ nguyên định dạng nếu có thể (ví dụ: các đoạn văn, danh sách):
+                const prompt = `Dịch đoạn văn bản tiếng Anh sau đây sang tiếng Việt. **Giữ nguyên các định dạng cơ bản như in đậm, in nghiêng bằng cách sử dụng cú pháp Markdown (ví dụ: **từ** cho in đậm, *từ* cho in nghiêng)**:
 ---
 Nội dung: ${currentPageTextContent}
 ---`;
