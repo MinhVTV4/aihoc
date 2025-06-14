@@ -241,6 +241,53 @@
             background-color: #dc2626; /* red-600 */
         }
 
+        /* Style for bookmark items */
+        .bookmark-item {
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #e0f2fe; /* light blue-50 */
+            border: 1px solid #90cdf4; /* light blue-300 */
+            transition: background-color 0.2s ease-in-out;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .bookmark-item:hover {
+            background-color: #bfdbfe; /* light blue-200 */
+        }
+        .bookmark-item .bookmark-details {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .bookmark-item .bookmark-title {
+            font-weight: 500;
+            color: #2d3748;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bookmark-item .bookmark-info {
+            font-size: 0.7rem;
+            color: #718096;
+        }
+        .bookmark-item .delete-btn {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            line-height: 1;
+            margin-left: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        .bookmark-item .delete-btn:hover {
+            background-color: #dc2626; /* red-600 */
+        }
+
         /* Modal Styles */
         .modal-backdrop {
             position: fixed;
@@ -352,6 +399,11 @@
                     <button id="prevPageBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out">Trang trước</button>
                     <span id="pageNumberDisplay" class="font-bold text-lg text-gray-700">1 / 1</span>
                     <button id="nextPageBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out">Trang tiếp</button>
+                    
+                    <input type="number" id="goToPageInput" min="1" class="w-20 p-2 border border-gray-300 rounded-md text-sm text-center" placeholder="Trang">
+                    <button id="goToPageBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out">Đi tới</button>
+                    <button id="bookmarkPageBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out"><i class="fas fa-bookmark"></i></button>
+
                     <button id="translateCurrentPageBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out ml-4 hidden-content">Dịch trang này</button>
                 </div>
 
@@ -404,10 +456,16 @@
             Chưa có phản hồi...
         </div>
 
-        <!-- NEW: AI History Section -->
+        <!-- AI History Section -->
         <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Lịch sử tương tác AI:</h4>
         <div id="aiHistoryList" class="flex flex-col gap-2 border border-gray-200 rounded-md p-2 max-h-60 overflow-y-auto bg-gray-50">
             <p class="text-sm text-gray-500 text-center py-4">Đang tải lịch sử...</p>
+        </div>
+
+        <!-- NEW: Bookmarks Section -->
+        <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Các trang đã đánh dấu:</h4>
+        <div id="bookmarksList" class="flex flex-col gap-2 border border-gray-200 rounded-md p-2 max-h-60 overflow-y-auto bg-gray-50">
+            <p class="text-sm text-gray-500 text-center py-4">Chưa có trang nào được đánh dấu.</p>
         </div>
     </div>
 
@@ -450,8 +508,8 @@
             orderBy, 
             onSnapshot,
             serverTimestamp,
-            deleteDoc, // NEW: Import deleteDoc
-            doc as firestoreDoc // Rename doc to firestoreDoc to avoid conflict with IndexedDB doc
+            deleteDoc, 
+            doc as firestoreDoc 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
         import { getAI, getGenerativeModel, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-ai.js";
 
@@ -480,8 +538,9 @@
         const DB_NAME = 'LearningCenterDB';
         const DB_VERSION = 1;
         const FILE_STORE_NAME = 'uploaded_files';
+        const BOOKMARK_STORE_NAME = 'bookmarked_pages'; // NEW: Bookmark store name
 
-        // Lấy các phần tử HTML (đã chuyển sang 'let' để có thể gán lại nếu cần)
+        // Lấy các phần tử HTML 
         let emailInput = document.getElementById('emailInput');
         let passwordInput = document.getElementById('passwordInput');
         let registerBtn = document.getElementById('registerBtn');
@@ -500,7 +559,7 @@
         let promptInput = document.getElementById('promptInput');
         let sendPromptButton = document.getElementById('sendPromptButton');
         let buttonText = document.getElementById('buttonText');
-        let buttonSpinner = document.getElementById('spinner'); // Corrected ID to 'spinner' from 'buttonSpinner' as per HTML
+        let buttonSpinner = document.getElementById('spinner'); 
         let responseContainer = document.getElementById('responseContainer');
         let statusMessage = document.getElementById('statusMessage');
         let savedFilesList = document.getElementById('savedFilesList'); 
@@ -514,6 +573,9 @@
         let prevPageBtn = document.getElementById('prevPageBtn');
         let nextPageBtn = document.getElementById('nextPageBtn');
         let pageNumberDisplay = document.getElementById('pageNumberDisplay');
+        let goToPageInput = document.getElementById('goToPageInput'); // NEW: Go to page input
+        let goToPageBtn = document.getElementById('goToPageBtn');     // NEW: Go to page button
+        let bookmarkPageBtn = document.getElementById('bookmarkPageBtn'); // NEW: Bookmark button
         let translateCurrentPageBtn = document.getElementById('translateCurrentPageBtn'); 
         let quotaWarning = document.getElementById('quotaWarning'); 
 
@@ -525,8 +587,10 @@
 
         // AI History Elements
         let aiHistoryList = document.getElementById('aiHistoryList');
+        // NEW: Bookmarks list
+        let bookmarksList = document.getElementById('bookmarksList');
 
-        // NEW: Modal elements
+        // Modal elements
         let confirmationModal = document.getElementById('confirmationModal');
         let modalMessage = document.getElementById('modalMessage');
         let confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
@@ -542,14 +606,13 @@
         let totalPages = 1;
 
         // Variables for confirmation modal callback
-        let confirmAction = null; // Function to execute on confirmation
+        let confirmAction = null; 
 
 
         /**
          * Hàm cập nhật trạng thái hiển thị trên giao diện.
          */
         function updateStatus(type, message, targetElement = statusMessage) {
-            // Re-fetch element if it's null (defensive coding)
             if (!targetElement || !(targetElement instanceof HTMLElement)) {
                 if (targetElement === fileNameDisplay) targetElement = document.getElementById('fileNameDisplay');
                 else if (targetElement === statusMessage) targetElement = document.getElementById('statusMessage');
@@ -582,7 +645,7 @@
         }
 
         // ===============================================
-        // IndexedDB Initialization
+        // IndexedDB Initialization (Added Bookmark Store)
         // ===============================================
 
         function openDatabase() {
@@ -596,6 +659,14 @@
                         fileStore.createIndex('fileName', 'fileName', { unique: false });
                         fileStore.createIndex('uploadedAt', 'uploadedAt', { unique: false });
                         console.log(`IndexedDB object store '${FILE_STORE_NAME}' created.`);
+                    }
+                    // NEW: Create object store for bookmarks
+                    if (!indexedDB_db.objectStoreNames.contains(BOOKMARK_STORE_NAME)) {
+                        const bookmarkStore = indexedDB_db.createObjectStore(BOOKMARK_STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        bookmarkStore.createIndex('fileId', 'fileId', { unique: false }); // Index by file ID
+                        bookmarkStore.createIndex('pageNum', 'pageNum', { unique: false }); // Index by page number
+                        bookmarkStore.createIndex('bookmarkedAt', 'bookmarkedAt', { unique: false }); // Index by timestamp
+                        console.log(`IndexedDB object store '${BOOKMARK_STORE_NAME}' created.`);
                     }
                 };
 
@@ -623,17 +694,17 @@
         function showConfirmationModal(message, onConfirm) {
             if (confirmationModal) confirmationModal.classList.remove('hidden-content');
             if (modalMessage) modalMessage.textContent = message;
-            confirmAction = onConfirm; // Store the function to call on confirm
+            confirmAction = onConfirm; 
         }
 
         function hideConfirmationModal() {
             if (confirmationModal) confirmationModal.classList.add('hidden-content');
-            confirmAction = null; // Clear the stored function
+            confirmAction = null; 
         }
 
         if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', () => {
             if (confirmAction) {
-                confirmAction(); // Execute the stored action
+                confirmAction(); 
             }
             hideConfirmationModal();
         });
@@ -643,7 +714,6 @@
         });
 
         if (confirmationModal) confirmationModal.addEventListener('click', (event) => {
-            // Close modal if click outside the content
             if (event.target === confirmationModal) {
                 hideConfirmationModal();
             }
@@ -669,6 +739,7 @@
                 
                 loadSavedFilesFromIndexedDB();
                 loadAiHistory(currentUserId);
+                loadBookmarks(); // NEW: Load bookmarks on login
 
             } else {
                 currentUserId = null;
@@ -693,6 +764,7 @@
                 if (selectionActionButtons) selectionActionButtons.classList.remove('active'); 
                 if (savedFilesList) savedFilesList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Đăng nhập để xem tài liệu đã lưu.</p>'; 
                 if (aiHistoryList) aiHistoryList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Đăng nhập để xem lịch sử AI.</p>'; 
+                if (bookmarksList) bookmarksList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Đăng nhập để xem các trang đã đánh dấu.</p>'; // Clear bookmarks
                 if (pdfPageControls) pdfPageControls.classList.add('hidden-content'); 
                 if (translateCurrentPageBtn) translateCurrentPageBtn.classList.add('hidden-content'); 
                 if (quotaWarning) quotaWarning.classList.add('hidden-content'); 
@@ -781,7 +853,7 @@
 
                 snapshot.forEach(doc => {
                     const historyData = doc.data();
-                    const historyId = doc.id; // Get Firestore document ID for deletion
+                    const historyId = doc.id; 
 
                     const historyItem = document.createElement('div');
                     historyItem.className = 'ai-history-item';
@@ -795,12 +867,11 @@
                         <button class="delete-btn" data-id="${historyId}" data-type="ai-history"><i class="fas fa-trash-alt"></i></button>
                     `;
                     historyItem.addEventListener('click', (event) => {
-                        // Prevent click on item if delete button was clicked
                         if (event.target.closest('.delete-btn')) {
                             return;
                         }
                         if (promptInput) promptInput.value = historyData.prompt;
-                        if (responseContainer) responseContainer.innerText = historyData.response; // Use innerText for history display
+                        if (responseContainer) responseContainer.innerText = historyData.response; 
                         updateStatus('info-text', `Đang xem lại lịch sử AI (ID: ${historyId}).`);
                         openAiSidebar(); 
                     });
@@ -808,7 +879,6 @@
                 });
                 console.log(`Loaded ${snapshot.size} AI interactions for user ${userId}.`);
 
-                // Attach delete event listeners after all items are rendered
                 aiHistoryList.querySelectorAll('.delete-btn').forEach(button => {
                     button.addEventListener('click', (event) => {
                         const idToDelete = event.currentTarget.dataset.id;
@@ -887,7 +957,6 @@
                     `;
                     
                     fileItem.addEventListener('click', (event) => {
-                        // Prevent click on item if delete button was clicked
                         if (event.target.closest('.delete-btn')) {
                             return;
                         }
@@ -897,10 +966,9 @@
                 });
                 console.log(`Loaded ${files.length} saved files from IndexedDB.`);
 
-                // Attach delete event listeners after all items are rendered
                 savedFilesList.querySelectorAll('.delete-btn').forEach(button => {
                     button.addEventListener('click', (event) => {
-                        const idToDelete = parseInt(event.currentTarget.dataset.id); // IndexedDB keys are numbers
+                        const idToDelete = parseInt(event.currentTarget.dataset.id); 
                         showConfirmationModal('Bạn có chắc chắn muốn xóa tài liệu này khỏi bộ nhớ cục bộ?', () => deleteFileFromIndexedDB(idToDelete));
                     });
                 });
@@ -932,9 +1000,8 @@
                 request.onsuccess = () => {
                     console.log("File deleted from IndexedDB:", fileId);
                     updateStatus('success-text', 'Đã xóa tài liệu khỏi bộ nhớ cục bộ.');
-                    loadSavedFilesFromIndexedDB(); // Refresh the list
-                    // Clear viewer if the deleted file was currently displayed
-                    if (currentFileId === fileId) {
+                    loadSavedFilesFromIndexedDB(); 
+                    if (currentFileId === fileId) { // If the deleted file was currently displayed
                         if (originalDocumentViewer) originalDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
                         if (translatedDocumentContainer) translatedDocumentContainer.classList.add('hidden-content');
                         if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>';
@@ -948,6 +1015,8 @@
                         if (translateCurrentPageBtn) translateCurrentPageBtn.classList.add('hidden-content');
                         if (quotaWarning) quotaWarning.classList.add('hidden-content');
                     }
+                    // Remove bookmarks associated with this file as well
+                    deleteBookmarksByFileId(fileId);
                 };
 
                 request.onerror = (event) => {
@@ -1151,8 +1220,1033 @@ Yêu cầu của tôi: ${aiPrompt}`;
                 const response = result.response;
                 const text = response.text();
                 
-                // NEW: Use marked.js if targetViewer is translatedDocumentViewer OR responseContainer
-                // For responseContainer, it should ideally be plain text, but for consistency if it's the target, let's process Markdown too
+                if ((targetViewer === translatedDocumentViewer || targetViewer === responseContainer) && typeof marked !== 'undefined') {
+                    targetViewer.innerHTML = marked.parse(text); 
+                } else if (targetViewer) {
+                    targetViewer.innerText = text; 
+                }
+
+                if (targetViewer) {
+                    targetViewer.classList.remove('bg-gray-100');
+                    targetViewer.classList.add('bg-gray-50');
+                }
+                updateStatus('success-text', "Đã nhận phản hồi từ Gemini.");
+                console.log("Response text:", text);
+
+                if (currentUserId) {
+                    await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/ai_interactions`), {
+                        prompt: aiPrompt,
+                        response: text,
+                        contextUsed: contextText.substring(0, Math.min(contextText.length, 500)) + (contextText.length > 500 ? '...' : ''), 
+                        timestamp: serverTimestamp(),
+                        fileId: currentFileId 
+                    });
+                    console.log("AI interaction saved to Firestore.");
+                }
+
+            } catch (error) {
+                console.error("Lỗi khi gọi Gemini API:", error);
+                if (targetViewer) targetViewer.innerText = `Lỗi: ${error.message}.`;
+                if (targetViewer) {
+                    targetViewer.classList.remove('bg-gray-100');
+                    targetViewer.classList.add('bg-gray-50');
+                }
+                updateStatus('error-text', `Lỗi khi gọi Gemini API: ${error.message}.`);
+            } finally {
+                if (targetViewer === responseContainer) {
+                    if (buttonText) buttonText.textContent = 'Gửi yêu cầu tới Gemini';
+                    if (buttonSpinner) buttonSpinner.classList.add('hidden');
+                    if (sendPromptButton) sendPromptButton.disabled = false;
+                    if (promptInput) promptInput.disabled = false; 
+                    if (explainSelectedBtn) explainSelectedBtn.disabled = false;
+                    if (summarizeSelectedBtn) summarizeSelectedBtn.disabled = false;
+                    if (expandSelectedBtn) expandSelectedBtn.disabled = false;
+                }
+            }
+        }
+
+        if (sendPromptButton) sendPromptButton.addEventListener("click", () => {
+            callGeminiAPI(promptInput.value, currentDocumentTextContent);
+        });
+
+        // ===============================================
+        // Logic xử lý File (Updated for IndexedDB upload)
+        // ===============================================
+
+        async function renderPdfPage(pageNum) {
+            if (!pdfDocument) {
+                console.error("PDF document not loaded.");
+                return;
+            }
+            if (pageNum < 1 || pageNum > totalPages) {
+                console.warn(`Page number ${pageNum} is out of bounds.`);
+                return;
+            }
+
+            currentPageNum = pageNum;
+            if (pageNumberDisplay) pageNumberDisplay.textContent = `${currentPageNum} / ${totalPages}`;
+            
+            if (originalDocumentViewer) originalDocumentViewer.innerHTML = '';
+            if (originalDocumentViewer) originalDocumentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang tải trang...</p>';
+
+            try {
+                const page = await pdfDocument.getPage(pageNum);
+                const viewerWidth = originalDocumentViewer ? originalDocumentViewer.clientWidth - 32 : 600; 
+                const viewport = page.getViewport({ scale: 1 });
+                const scale = viewerWidth / viewport.width;
+                const scaledViewport = page.getViewport({ scale: scale });
+
+                const pageWrapper = document.createElement('div');
+                pageWrapper.className = 'pdf-page-wrapper';
+                pageWrapper.style.width = `${scaledViewport.width}px`;
+                pageWrapper.style.height = `${scaledViewport.width * (viewport.height / viewport.width)}px`; 
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = scaledViewport.height;
+                canvas.width = scaledViewport.width;
+                pageWrapper.appendChild(canvas);
+                
+                const textLayerDiv = document.createElement('div');
+                textLayerDiv.className = 'textLayer';
+                pageWrapper.appendChild(textLayerDiv);
+
+                if (originalDocumentViewer) originalDocumentViewer.innerHTML = ''; 
+                if (originalDocumentViewer) originalDocumentViewer.appendChild(pageWrapper);
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: scaledViewport
+                }).promise;
+
+                const textContent = await page.getTextContent();
+                await pdfjsLib.renderTextLayer({
+                    textContent: textContent,
+                    container: textLayerDiv,
+                    viewport: scaledViewport,
+                    textDivs: [] 
+                }).promise;
+
+                const textLayerStyle = textLayerDiv.style;
+                const scaleX = scaledViewport.width / viewport.width;
+                const scaleY = scaledViewport.height / viewport.height;
+                textLayerStyle.transform = `scale(${scaleX}, ${scaleY})`;
+                textLayerStyle.transformOrigin = '0% 0%'; 
+                textLayerDiv.style.width = `${viewport.width}px`; 
+                textLayerDiv.style.height = `${viewport.height}px`; 
+
+                currentPageTextContent = textContent.items.map(item => item.str).join(' ');
+
+                if (prevPageBtn) prevPageBtn.disabled = currentPageNum <= 1;
+                if (nextPageBtn) nextPageBtn.disabled = currentPageNum >= totalPages;
+
+            } catch (error) {
+                console.error("Error rendering PDF page:", error);
+                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi hiển thị trang PDF: ${error.message}</p>`;
+                updateStatus('error-text', `Lỗi hiển thị PDF: ${error.message}`);
+            }
+        }
+
+        if (prevPageBtn) prevPageBtn.addEventListener('click', () => {
+            if (currentPageNum > 1) {
+                renderPdfPage(currentPageNum - 1);
+                if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; 
+            }
+        });
+
+        if (nextPageBtn) nextPageBtn.addEventListener('click', () => {
+            if (currentPageNum < totalPages) {
+                renderPdfPage(currentPageNum + 1);
+                if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; 
+            }
+        });
+
+        // NEW: Go to page by input number
+        if (goToPageBtn) goToPageBtn.addEventListener('click', () => {
+            const pageNum = parseInt(goToPageInput.value);
+            if (isNaN(pageNum) || pageNum < 1 || pageNum > totalPages) {
+                updateStatus('error-text', `Số trang không hợp lệ. Vui lòng nhập số từ 1 đến ${totalPages}.`);
+                if (goToPageInput) goToPageInput.value = currentPageNum; // Reset input
+                return;
+            }
+            renderPdfPage(pageNum);
+            if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>';
+        });
+
+        // NEW: Bookmark current page
+        if (bookmarkPageBtn) bookmarkPageBtn.addEventListener('click', async () => {
+            if (!currentFileId || !pdfDocument) {
+                updateStatus('error-text', 'Vui lòng tải một file PDF trước khi đánh dấu trang.');
+                return;
+            }
+            if (!currentUserId) {
+                updateStatus('error-text', 'Vui lòng đăng nhập để đánh dấu trang.');
+                return;
+            }
+
+            try {
+                const transaction = indexedDB_db.transaction([BOOKMARK_STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(BOOKMARK_STORE_NAME);
+                
+                const bookmarkRecord = {
+                    fileId: currentFileId,
+                    fileName: fileNameDisplay.textContent, // Use displayed file name
+                    pageNum: currentPageNum,
+                    bookmarkedAt: Date.now()
+                };
+
+                const request = objectStore.add(bookmarkRecord);
+                request.onsuccess = (event) => {
+                    console.log("Bookmark saved with ID:", event.target.result);
+                    updateStatus('success-text', `Đã đánh dấu trang ${currentPageNum} của "${fileNameDisplay.textContent}".`, statusMessage);
+                    loadBookmarks(); // Refresh bookmarks list
+                };
+                request.onerror = (event) => {
+                    console.error("Error saving bookmark:", event.target.errorCode, event.target.error);
+                    updateStatus('error-text', `Lỗi khi đánh dấu trang: ${event.target.error.message || event.target.errorCode}.`, statusMessage);
+                };
+            } catch (error) {
+                console.error("Error during bookmark transaction:", error);
+                updateStatus('error-text', `Lỗi khi đánh dấu trang: ${error.message}.`, statusMessage);
+            }
+        });
+
+        // NEW: Load Bookmarks from IndexedDB
+        async function loadBookmarks() {
+            if (!indexedDB_db) {
+                await openDatabase();
+            }
+            if (!indexedDB_db) {
+                if (bookmarksList) bookmarksList.innerHTML = '<p class="text-sm text-red-600 text-center py-4">Lỗi: Không thể truy cập IndexedDB cho bookmark.</p>';
+                return;
+            }
+
+            const transaction = indexedDB_db.transaction([BOOKMARK_STORE_NAME], 'readonly');
+            const objectStore = transaction.objectStore(BOOKMARK_STORE_NAME);
+            const request = objectStore.getAll();
+
+            request.onsuccess = (event) => {
+                if (bookmarksList) bookmarksList.innerHTML = '';
+                const bookmarks = event.target.result;
+                if (bookmarks.length === 0) {
+                    if (bookmarksList) bookmarksList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Chưa có trang nào được đánh dấu.</p>';
+                    return;
+                }
+
+                bookmarks.sort((a, b) => (b.bookmarkedAt || 0) - (a.bookmarkedAt || 0));
+
+                bookmarks.forEach(bookmark => {
+                    const bookmarkItem = document.createElement('div');
+                    bookmarkItem.className = 'bookmark-item';
+                    bookmarkItem.dataset.id = bookmark.id; // Bookmark ID
+                    
+                    const date = bookmark.bookmarkedAt ? new Date(bookmark.bookmarkedAt) : new Date();
+                    const formattedDate = date.toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' });
+
+                    bookmarkItem.innerHTML = `
+                        <div class="bookmark-details">
+                            <span class="bookmark-title">${bookmark.fileName} (Trang ${bookmark.pageNum})</span>
+                            <span class="bookmark-info">Đánh dấu: ${formattedDate}</span>
+                        </div>
+                        <button class="delete-btn" data-id="${bookmark.id}" data-type="bookmark"><i class="fas fa-trash-alt"></i></button>
+                    `;
+                    
+                    bookmarkItem.addEventListener('click', (event) => {
+                        if (event.target.closest('.delete-btn')) return; // Don't trigger if delete button is clicked
+                        // Load the file first, then navigate to the page
+                        loadFileFromIndexedDBAndDisplay(bookmark.fileId, bookmark.pageNum); // Pass target pageNum
+                        closeAiSidebar(); // Close sidebar after clicking bookmark
+                    });
+                    if (bookmarksList) bookmarksList.appendChild(bookmarkItem);
+                });
+                console.log(`Loaded ${bookmarks.length} bookmarks.`);
+
+                // Attach delete event listeners
+                bookmarksList.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const idToDelete = parseInt(event.currentTarget.dataset.id);
+                        showConfirmationModal('Bạn có chắc chắn muốn xóa đánh dấu trang này?', () => deleteBookmark(idToDelete));
+                    });
+                });
+            }
+
+            request.onerror = (event) => {
+                console.error("Error loading bookmarks from IndexedDB:", event.target.errorCode);
+                if (bookmarksList) bookmarksList.innerHTML = '<p class="text-sm text-red-600 text-center py-4">Lỗi khi tải các trang đã đánh dấu.</p>';
+            };
+        }
+
+        // NEW: Delete Bookmark from IndexedDB
+        async function deleteBookmark(bookmarkId) {
+            if (!indexedDB_db) {
+                await openDatabase();
+            }
+            if (!indexedDB_db) {
+                updateStatus('error-text', 'Không thể xóa đánh dấu trang: Không thể truy cập IndexedDB.');
+                return;
+            }
+
+            try {
+                const transaction = indexedDB_db.transaction([BOOKMARK_STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(BOOKMARK_STORE_NAME);
+                const request = objectStore.delete(bookmarkId);
+
+                request.onsuccess = () => {
+                    console.log("Bookmark deleted from IndexedDB:", bookmarkId);
+                    updateStatus('success-text', 'Đã xóa đánh dấu trang.');
+                    loadBookmarks(); // Refresh the list
+                };
+
+                request.onerror = (event) => {
+                    console.error("Error deleting bookmark from IndexedDB:", event.target.errorCode, event.target.error);
+                    updateStatus('error-text', `Lỗi khi xóa đánh dấu trang: ${event.target.error.message || event.target.errorCode}.`);
+                };
+            } catch (error) {
+                console.error("Error during bookmark delete transaction:", error);
+                updateStatus('error-text', `Lỗi khi xóa đánh dấu trang: ${error.message}.`);
+            }
+        }
+
+        // NEW: Delete all bookmarks associated with a file (called when a file is deleted)
+        async function deleteBookmarksByFileId(fileId) {
+            if (!indexedDB_db) {
+                await openDatabase();
+            }
+            if (!indexedDB_db) {
+                console.error('Không thể xóa đánh dấu trang liên quan: Không thể truy cập IndexedDB.');
+                return;
+            }
+            
+            try {
+                const transaction = indexedDB_db.transaction([BOOKMARK_STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(BOOKMARK_STORE_NAME);
+                const fileIdIndex = objectStore.index('fileId');
+                const request = fileIdIndex.openCursor(IDBKeyRange.only(fileId));
+
+                request.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        cursor.delete(); // Delete the current bookmark
+                        cursor.continue(); // Move to the next bookmark
+                    } else {
+                        console.log(`All bookmarks for fileId ${fileId} deleted.`);
+                        loadBookmarks(); // Refresh bookmark list after deletion
+                    }
+                };
+                request.onerror = (event) => {
+                    console.error("Error deleting associated bookmarks:", event.target.errorCode);
+                };
+            } catch (error) {
+                console.error("Error during associated bookmark deletion transaction:", error);
+            }
+        }
+
+
+        /**
+         * Loads the content of a saved file from IndexedDB and displays it.
+         * @param {number} fileId The IndexedDB key of the file.
+         * @param {number} [targetPageNum] Optional: The page number to jump to after loading.
+         */
+        async function loadFileFromIndexedDBAndDisplay(fileId, targetPageNum = 1) {
+            if (!indexedDB_db) {
+                await openDatabase(); 
+            }
+            if (!indexedDB_db) {
+                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Không thể truy cập IndexedDB.</p>`;
+                updateStatus('error-text', 'Lỗi: Không thể truy cập IndexedDB.');
+                return;
+            }
+
+            if (originalDocumentViewer) originalDocumentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang tải tài liệu từ IndexedDB...</p>';
+            if (translatedDocumentContainer) translatedDocumentContainer.classList.add('hidden-content'); 
+            if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; 
+            if (fileNameDisplay) fileNameDisplay.textContent = `Đang xem từ cục bộ...`;
+            currentFileId = fileId; 
+            currentDocumentTextContent = ""; 
+            currentPageTextContent = ""; 
+            selectedTextForAI = "";
+            if (selectionActionButtons) selectionActionButtons.classList.remove('active');
+            if (pdfPageControls) pdfPageControls.classList.add('hidden-content'); 
+            if (translateCurrentPageBtn) translateCurrentPageBtn.classList.add('hidden-content'); 
+            if (quotaWarning) quotaWarning.classList.add('hidden-content'); 
+            pdfDocument = null; 
+            currentPageNum = 1;
+            totalPages = 1;
+
+            try {
+                const transaction = indexedDB_db.transaction([FILE_STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(FILE_STORE_NAME);
+                const request = objectStore.get(fileId);
+
+                request.onsuccess = async (event) => {
+                    const fileData = event.target.result;
+                    if (!fileData) {
+                        if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">File không tìm thấy trong IndexedDB.</p>`;
+                        updateStatus('error-text', 'Lỗi: File không tìm thấy trong IndexedDB.');
+                        return;
+                    }
+
+                    const fileBlob = fileData.fileBlob; 
+                    const fileName = fileData.fileName;
+                    const fileType = fileData.fileType;
+
+                    const blobReader = new FileReader();
+                    blobReader.onload = async (e) => {
+                        const arrayBuffer = e.target.result;
+                        let plainTextContent = '';
+                        let convertedHtmlForDocx = '';
+
+                        if (fileType === 'application/pdf') {
+                            if (typeof pdfjsLib === 'undefined') {
+                                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
+                                updateStatus('error-text', `Lỗi: Thư viện PDF.js chưa được tải.`);
+                            } else {
+                                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                                pdfDocument = await loadingTask.promise;
+                                totalPages = pdfDocument.numPages;
+                                currentPageNum = targetPageNum; // Set current page to targetPageNum
+                                if (goToPageInput) goToPageInput.value = targetPageNum; // Update input field
+
+                                let fullPdfText = [];
+                                for (let i = 1; i <= totalPages; i++) {
+                                    const page = await pdfDocument.getPage(i);
+                                    const textContent = await page.getTextContent();
+                                    const pageText = textContent.items.map(item => item.str).join(' ');
+                                    fullPdfText.push(pageText);
+                                }
+                                plainTextContent = fullPdfText.join('\n\n');
+
+                                renderPdfPage(currentPageNum);
+                                if (pdfPageControls) pdfPageControls.classList.remove('hidden-content');
+                                if (translateCurrentPageBtn) translateCurrentPageBtn.classList.remove('hidden-content');
+                                if (quotaWarning) quotaWarning.classList.remove('hidden-content');
+                                if (translatedDocumentContainer) translatedDocumentContainer.classList.remove('hidden-content');
+                                updateStatus('success-text', `Đã tải file PDF "${fileName}" từ IndexedDB và hiển thị.`);
+                            }
+                        } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                            if (typeof window.mammoth === 'undefined') {
+                                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
+                                updateStatus('error-text', `Lỗi: Thư viện mammoth.js chưa được tải.`);
+                            } else {
+                                try {
+                                    const result = await window.mammoth.convertToHtml({arrayBuffer: arrayBuffer});
+                                    convertedHtmlForDocx = result.value;
+                                    plainTextContent = convertedHtmlForDocx.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                                    if (originalDocumentViewer) originalDocumentViewer.innerHTML = convertedHtmlForDocx;
+                                    if (translatedDocumentContainer) translatedDocumentContainer.classList.add('hidden-content'); 
+                                    if (pdfPageControls) pdfPageControls.classList.add('hidden-content'); 
+                                    if (translateCurrentPageBtn) translateCurrentPageBtn.classList.add('hidden-content'); 
+                                    if (quotaWarning) quotaWarning.classList.add('hidden-content'); 
+                                    updateStatus('success-text', `Đã tải file DOCX "${fileName}" từ IndexedDB và hiển thị.`);
+
+                                    if (result.messages.length > 0) {
+                                        console.warn("Mammoth.js conversion warnings/errors:", result.messages);
+                                    }
+
+                                } catch (mammothError) {
+                                    console.error("Lỗi khi chuyển đổi DOCX từ IndexedDB:", mammothError);
+                                    if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}</p>`;
+                                    plainTextContent = `Lỗi khi xử lý DOCX từ IndexedDB.`;
+                                    updateStatus('error-text', `Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}.`);
+                                }
+                            }
+                        } else {
+                            if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${fileType}</p>`;
+                            plainTextContent = `Định dạng file không được hỗ trợ.`;
+                            updateStatus('error-text', `Lỗi: Định dạng file không được hỗ trợ "${fileType}".`);
+                        }
+                        
+                        currentDocumentTextContent = plainTextContent;
+                        if (fileNameDisplay) fileNameDisplay.textContent = `Đang xem: ${fileName}`;
+                        console.log("Document content loaded from IndexedDB and stored for AI context. Length:", currentDocumentTextContent.length);
+                    };
+                    blobReader.readAsArrayBuffer(fileBlob); 
+
+                };
+
+                request.onerror = (event) => {
+                    console.error("Error retrieving file from IndexedDB:", event.target.errorCode);
+                    if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi tải file từ IndexedDB: ${event.target.errorCode}</p>`;
+                    updateStatus('error-text', `Lỗi khi tải file từ IndexedDB.`);
+                };
+            } catch (error) {
+                console.error("Lỗi tải file từ IndexedDB:", error);
+                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi tải file từ IndexedDB: ${error.message}</p>`;
+                updateStatus('error-text', `Lỗi tải file từ IndexedDB: ${error.message}`);
+            }
+        }
+
+
+        // ===============================================
+        // AI Interaction Logic
+        // ===============================================
+        
+        async function callGeminiAPI(aiPrompt, contextText = "", targetViewer = responseContainer) { 
+            if (!model) {
+                updateStatus('error-text', "Mô hình AI chưa được khởi tạo. Vui lòng kiểm tra console để biết lỗi.");
+                return;
+            }
+            if (!auth.currentUser) { 
+                updateStatus('error-text', 'Vui lòng đăng nhập để sử dụng tính năng AI.', authStatus);
+                return;
+            }
+            if (!currentDocumentTextContent && !selectedTextForAI && !currentPageTextContent) { 
+                 updateStatus('error-text', 'Vui lòng tải lên một tài liệu hoặc chọn văn bản để tương tác với AI.');
+                 return;
+            }
+
+            if (!aiPrompt.trim()) {
+                updateStatus('error-text', "Vui lòng nhập lời nhắc!");
+                return;
+            }
+
+            let fullPrompt = aiPrompt.trim();
+            if (contextText) {
+                fullPrompt = `Sử dụng nội dung sau làm ngữ cảnh để trả lời yêu cầu của tôi. Nếu không đủ thông tin, hãy cho biết:
+---
+Nội dung: ${contextText}
+---
+Yêu cầu của tôi: ${aiPrompt}`;
+            }
+
+            if (targetViewer) targetViewer.innerHTML = '<div class="large-spinner mx-auto my-4"></div>'; 
+            if (targetViewer) {
+                targetViewer.classList.add('bg-gray-100'); 
+                targetViewer.classList.remove('bg-gray-50'); 
+            }
+            
+            if (targetViewer === responseContainer) {
+                if (buttonText) buttonText.textContent = 'Đang gửi...';
+                if (buttonSpinner) buttonSpinner.classList.remove('hidden');
+                if (sendPromptButton) sendPromptButton.disabled = true;
+                if (promptInput) promptInput.disabled = true; 
+                if (explainSelectedBtn) explainSelectedBtn.disabled = true;
+                if (summarizeSelectedBtn) summarizeSelectedBtn.disabled = true;
+                if (expandSelectedBtn) expandSelectedBtn.disabled = true;
+            }
+            updateStatus('info-text', "Đang gửi yêu cầu đến Gemini...");
+
+
+            console.log("Sending prompt to Gemini:", fullPrompt);
+
+            try {
+                const result = await model.generateContent(fullPrompt);
+                const response = result.response;
+                const text = response.text();
+                
+                if ((targetViewer === translatedDocumentViewer || targetViewer === responseContainer) && typeof marked !== 'undefined') {
+                    targetViewer.innerHTML = marked.parse(text); 
+                } else if (targetViewer) {
+                    targetViewer.innerText = text; 
+                }
+
+                if (targetViewer) {
+                    targetViewer.classList.remove('bg-gray-100');
+                    targetViewer.classList.add('bg-gray-50');
+                }
+                updateStatus('success-text', "Đã nhận phản hồi từ Gemini.");
+                console.log("Response text:", text);
+
+                if (currentUserId) {
+                    await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/ai_interactions`), {
+                        prompt: aiPrompt,
+                        response: text,
+                        contextUsed: contextText.substring(0, Math.min(contextText.length, 500)) + (contextText.length > 500 ? '...' : ''), 
+                        timestamp: serverTimestamp(),
+                        fileId: currentFileId 
+                    });
+                    console.log("AI interaction saved to Firestore.");
+                }
+
+            } catch (error) {
+                console.error("Lỗi khi gọi Gemini API:", error);
+                if (targetViewer) targetViewer.innerText = `Lỗi: ${error.message}.`;
+                if (targetViewer) {
+                    targetViewer.classList.remove('bg-gray-100');
+                    targetViewer.classList.add('bg-gray-50');
+                }
+                updateStatus('error-text', `Lỗi khi gọi Gemini API: ${error.message}.`);
+            } finally {
+                if (targetViewer === responseContainer) {
+                    if (buttonText) buttonText.textContent = 'Gửi yêu cầu tới Gemini';
+                    if (buttonSpinner) buttonSpinner.classList.add('hidden');
+                    if (sendPromptButton) sendPromptButton.disabled = false;
+                    if (promptInput) promptInput.disabled = false; 
+                    if (explainSelectedBtn) explainSelectedBtn.disabled = false;
+                    if (summarizeSelectedBtn) summarizeSelectedBtn.disabled = false;
+                    if (expandSelectedBtn) expandSelectedBtn.disabled = false;
+                }
+            }
+        }
+
+        if (sendPromptButton) sendPromptButton.addEventListener("click", () => {
+            callGeminiAPI(promptInput.value, currentDocumentTextContent);
+        });
+
+        // ===============================================
+        // Logic xử lý File (Updated for IndexedDB upload)
+        // ===============================================
+
+        async function renderPdfPage(pageNum) {
+            if (!pdfDocument) {
+                console.error("PDF document not loaded.");
+                return;
+            }
+            if (pageNum < 1 || pageNum > totalPages) {
+                console.warn(`Page number ${pageNum} is out of bounds.`);
+                return;
+            }
+
+            currentPageNum = pageNum;
+            if (pageNumberDisplay) pageNumberDisplay.textContent = `${currentPageNum} / ${totalPages}`;
+            
+            if (originalDocumentViewer) originalDocumentViewer.innerHTML = '';
+            if (originalDocumentViewer) originalDocumentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang tải trang...</p>';
+
+            try {
+                const page = await pdfDocument.getPage(pageNum);
+                const viewerWidth = originalDocumentViewer ? originalDocumentViewer.clientWidth - 32 : 600; 
+                const viewport = page.getViewport({ scale: 1 });
+                const scale = viewerWidth / viewport.width;
+                const scaledViewport = page.getViewport({ scale: scale });
+
+                const pageWrapper = document.createElement('div');
+                pageWrapper.className = 'pdf-page-wrapper';
+                pageWrapper.style.width = `${scaledViewport.width}px`;
+                pageWrapper.style.height = `${scaledViewport.width * (viewport.height / viewport.width)}px`; 
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = scaledViewport.height;
+                canvas.width = scaledViewport.width;
+                pageWrapper.appendChild(canvas);
+                
+                const textLayerDiv = document.createElement('div');
+                textLayerDiv.className = 'textLayer';
+                pageWrapper.appendChild(textLayerDiv);
+
+                if (originalDocumentViewer) originalDocumentViewer.innerHTML = ''; 
+                if (originalDocumentViewer) originalDocumentViewer.appendChild(pageWrapper);
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: scaledViewport
+                }).promise;
+
+                const textContent = await page.getTextContent();
+                await pdfjsLib.renderTextLayer({
+                    textContent: textContent,
+                    container: textLayerDiv,
+                    viewport: scaledViewport,
+                    textDivs: [] 
+                }).promise;
+
+                const textLayerStyle = textLayerDiv.style;
+                const scaleX = scaledViewport.width / viewport.width;
+                const scaleY = scaledViewport.height / viewport.height;
+                textLayerStyle.transform = `scale(${scaleX}, ${scaleY})`;
+                textLayerStyle.transformOrigin = '0% 0%'; 
+                textLayerDiv.style.width = `${viewport.width}px`; 
+                textLayerDiv.style.height = `${viewport.height}px`; 
+
+                currentPageTextContent = textContent.items.map(item => item.str).join(' ');
+
+                if (prevPageBtn) prevPageBtn.disabled = currentPageNum <= 1;
+                if (nextPageBtn) nextPageBtn.disabled = currentPageNum >= totalPages;
+
+            } catch (error) {
+                console.error("Error rendering PDF page:", error);
+                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi hiển thị trang PDF: ${error.message}</p>`;
+                updateStatus('error-text', `Lỗi hiển thị PDF: ${error.message}`);
+            }
+        }
+
+        if (prevPageBtn) prevPageBtn.addEventListener('click', () => {
+            if (currentPageNum > 1) {
+                renderPdfPage(currentPageNum - 1);
+                if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; 
+            }
+        });
+
+        if (nextPageBtn) nextPageBtn.addEventListener('click', () => {
+            if (currentPageNum < totalPages) {
+                renderPdfPage(currentPageNum + 1);
+                if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; 
+            }
+        });
+
+        // NEW: Go to page by input number
+        if (goToPageBtn) goToPageBtn.addEventListener('click', () => {
+            const pageNum = parseInt(goToPageInput.value);
+            if (isNaN(pageNum) || pageNum < 1 || pageNum > totalPages) {
+                updateStatus('error-text', `Số trang không hợp lệ. Vui lòng nhập số từ 1 đến ${totalPages}.`);
+                if (goToPageInput) goToPageInput.value = currentPageNum; 
+                return;
+            }
+            renderPdfPage(pageNum);
+            if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>';
+        });
+
+        // NEW: Bookmark current page
+        if (bookmarkPageBtn) bookmarkPageBtn.addEventListener('click', async () => {
+            if (!currentFileId || !pdfDocument) {
+                updateStatus('error-text', 'Vui lòng tải một file PDF trước khi đánh dấu trang.');
+                return;
+            }
+            if (!currentUserId) {
+                updateStatus('error-text', 'Vui lòng đăng nhập để đánh dấu trang.');
+                return;
+            }
+
+            try {
+                const transaction = indexedDB_db.transaction([BOOKMARK_STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(BOOKMARK_STORE_NAME);
+                
+                const bookmarkRecord = {
+                    fileId: currentFileId,
+                    fileName: fileNameDisplay.textContent, // Use displayed file name
+                    pageNum: currentPageNum,
+                    bookmarkedAt: Date.now()
+                };
+
+                const request = objectStore.add(bookmarkRecord);
+                request.onsuccess = (event) => {
+                    console.log("Bookmark saved with ID:", event.target.result);
+                    updateStatus('success-text', `Đã đánh dấu trang ${currentPageNum} của "${fileNameDisplay.textContent}".`, statusMessage);
+                    loadBookmarks(); 
+                };
+                request.onerror = (event) => {
+                    console.error("Error saving bookmark:", event.target.errorCode, event.target.error);
+                    updateStatus('error-text', `Lỗi khi đánh dấu trang: ${event.target.error.message || event.target.errorCode}.`, statusMessage);
+                };
+            } catch (error) {
+                console.error("Error during bookmark transaction:", error);
+                updateStatus('error-text', `Lỗi khi đánh dấu trang: ${error.message}.`, statusMessage);
+            }
+        });
+
+        // NEW: Load Bookmarks from IndexedDB
+        async function loadBookmarks() {
+            if (!indexedDB_db) {
+                await openDatabase();
+            }
+            if (!indexedDB_db) {
+                if (bookmarksList) bookmarksList.innerHTML = '<p class="text-sm text-red-600 text-center py-4">Lỗi: Không thể truy cập IndexedDB cho bookmark.</p>';
+                return;
+            }
+
+            const transaction = indexedDB_db.transaction([BOOKMARK_STORE_NAME], 'readonly');
+            const objectStore = transaction.objectStore(BOOKMARK_STORE_NAME);
+            const request = objectStore.getAll();
+
+            request.onsuccess = (event) => {
+                if (bookmarksList) bookmarksList.innerHTML = '';
+                const bookmarks = event.target.result;
+                if (bookmarks.length === 0) {
+                    if (bookmarksList) bookmarksList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Chưa có trang nào được đánh dấu.</p>';
+                    return;
+                }
+
+                bookmarks.sort((a, b) => (b.bookmarkedAt || 0) - (a.bookmarkedAt || 0));
+
+                bookmarks.forEach(bookmark => {
+                    const bookmarkItem = document.createElement('div');
+                    bookmarkItem.className = 'bookmark-item';
+                    bookmarkItem.dataset.id = bookmark.id; 
+                    
+                    const date = bookmark.bookmarkedAt ? new Date(bookmark.bookmarkedAt) : new Date();
+                    const formattedDate = date.toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' });
+
+                    bookmarkItem.innerHTML = `
+                        <div class="bookmark-details">
+                            <span class="bookmark-title">${bookmark.fileName} (Trang ${bookmark.pageNum})</span>
+                            <span class="bookmark-info">Đánh dấu: ${formattedDate}</span>
+                        </div>
+                        <button class="delete-btn" data-id="${bookmark.id}" data-type="bookmark"><i class="fas fa-trash-alt"></i></button>
+                    `;
+                    
+                    bookmarkItem.addEventListener('click', (event) => {
+                        if (event.target.closest('.delete-btn')) return; 
+                        // Load the file first, then navigate to the page
+                        loadFileFromIndexedDBAndDisplay(bookmark.fileId, bookmark.pageNum); 
+                        closeAiSidebar(); 
+                    });
+                    if (bookmarksList) bookmarksList.appendChild(bookmarkItem);
+                });
+                console.log(`Loaded ${bookmarks.length} bookmarks.`);
+
+                bookmarksList.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const idToDelete = parseInt(event.currentTarget.dataset.id);
+                        showConfirmationModal('Bạn có chắc chắn muốn xóa đánh dấu trang này?', () => deleteBookmark(idToDelete));
+                    });
+                });
+            }
+
+            request.onerror = (event) => {
+                console.error("Error loading bookmarks from IndexedDB:", event.target.errorCode);
+                if (bookmarksList) bookmarksList.innerHTML = '<p class="text-sm text-red-600 text-center py-4">Lỗi khi tải các trang đã đánh dấu.</p>';
+            };
+        }
+
+        // NEW: Delete Bookmark from IndexedDB
+        async function deleteBookmark(bookmarkId) {
+            if (!indexedDB_db) {
+                await openDatabase();
+            }
+            if (!indexedDB_db) {
+                updateStatus('error-text', 'Không thể xóa đánh dấu trang: Không thể truy cập IndexedDB.');
+                return;
+            }
+
+            try {
+                const transaction = indexedDB_db.transaction([BOOKMARK_STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(BOOKMARK_STORE_NAME);
+                const request = objectStore.delete(bookmarkId);
+
+                request.onsuccess = () => {
+                    console.log("Bookmark deleted from IndexedDB:", bookmarkId);
+                    updateStatus('success-text', 'Đã xóa đánh dấu trang.');
+                    loadBookmarks(); 
+                };
+
+                request.onerror = (event) => {
+                    console.error("Error deleting bookmark from IndexedDB:", event.target.errorCode, event.target.error);
+                    updateStatus('error-text', `Lỗi khi xóa đánh dấu trang: ${event.target.error.message || event.target.errorCode}.`);
+                };
+            } catch (error) {
+                console.error("Error during bookmark delete transaction:", error);
+                updateStatus('error-text', `Lỗi khi xóa đánh dấu trang: ${error.message}.`);
+            }
+        }
+
+        // NEW: Delete all bookmarks associated with a file (called when a file is deleted)
+        async function deleteBookmarksByFileId(fileId) {
+            if (!indexedDB_db) {
+                await openDatabase();
+            }
+            if (!indexedDB_db) {
+                console.error('Không thể xóa đánh dấu trang liên quan: Không thể truy cập IndexedDB.');
+                return;
+            }
+            
+            try {
+                const transaction = indexedDB_db.transaction([BOOKMARK_STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(BOOKMARK_STORE_NAME);
+                const fileIdIndex = objectStore.index('fileId');
+                const request = fileIdIndex.openCursor(IDBKeyRange.only(fileId));
+
+                request.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        cursor.delete(); 
+                        cursor.continue(); 
+                    } else {
+                        console.log(`All bookmarks for fileId ${fileId} deleted.`);
+                        loadBookmarks(); 
+                    }
+                };
+                request.onerror = (event) => {
+                    console.error("Error deleting associated bookmarks:", event.target.errorCode);
+                };
+            } catch (error) {
+                console.error("Error during associated bookmark deletion transaction:", error);
+            }
+        }
+
+
+        /**
+         * Loads the content of a saved file from IndexedDB and displays it.
+         * @param {number} fileId The IndexedDB key of the file.
+         * @param {number} [targetPageNum] Optional: The page number to jump to after loading.
+         */
+        async function loadFileFromIndexedDBAndDisplay(fileId, targetPageNum = 1) {
+            if (!indexedDB_db) {
+                await openDatabase(); 
+            }
+            if (!indexedDB_db) {
+                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Không thể truy cập IndexedDB.</p>`;
+                updateStatus('error-text', 'Lỗi: Không thể truy cập IndexedDB.');
+                return;
+            }
+
+            if (originalDocumentViewer) originalDocumentViewer.innerHTML = '<div class="large-spinner mx-auto my-10"></div><p class="text-center text-gray-500 mt-4">Đang tải tài liệu từ IndexedDB...</p>';
+            if (translatedDocumentContainer) translatedDocumentContainer.classList.add('hidden-content'); 
+            if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>'; 
+            if (fileNameDisplay) fileNameDisplay.textContent = `Đang xem từ cục bộ...`;
+            currentFileId = fileId; 
+            currentDocumentTextContent = ""; 
+            currentPageTextContent = ""; 
+            selectedTextForAI = "";
+            if (selectionActionButtons) selectionActionButtons.classList.remove('active');
+            if (pdfPageControls) pdfPageControls.classList.add('hidden-content'); 
+            if (translateCurrentPageBtn) translateCurrentPageBtn.classList.add('hidden-content'); 
+            if (quotaWarning) quotaWarning.classList.add('hidden-content'); 
+            pdfDocument = null; 
+            currentPageNum = 1;
+            totalPages = 1;
+
+            try {
+                const transaction = indexedDB_db.transaction([FILE_STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(FILE_STORE_NAME);
+                const request = objectStore.get(fileId);
+
+                request.onsuccess = async (event) => {
+                    const fileData = event.target.result;
+                    if (!fileData) {
+                        if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">File không tìm thấy trong IndexedDB.</p>`;
+                        updateStatus('error-text', 'Lỗi: File không tìm thấy trong IndexedDB.');
+                        return;
+                    }
+
+                    const fileBlob = fileData.fileBlob; 
+                    const fileName = fileData.fileName;
+                    const fileType = fileData.fileType;
+
+                    const blobReader = new FileReader();
+                    blobReader.onload = async (e) => {
+                        const arrayBuffer = e.target.result;
+                        let plainTextContent = '';
+                        let convertedHtmlForDocx = '';
+
+                        if (fileType === 'application/pdf') {
+                            if (typeof pdfjsLib === 'undefined') {
+                                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện PDF.js chưa được tải.</p>`;
+                                updateStatus('error-text', `Lỗi: Thư viện PDF.js chưa được tải.`);
+                            } else {
+                                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                                pdfDocument = await loadingTask.promise;
+                                totalPages = pdfDocument.numPages;
+                                currentPageNum = targetPageNum; 
+                                if (goToPageInput) goToPageInput.value = targetPageNum; 
+
+                                let fullPdfText = [];
+                                for (let i = 1; i <= totalPages; i++) {
+                                    const page = await pdfDocument.getPage(i);
+                                    const textContent = await page.getTextContent();
+                                    const pageText = textContent.items.map(item => item.str).join(' ');
+                                    fullPdfText.push(pageText);
+                                }
+                                plainTextContent = fullPdfText.join('\n\n');
+
+                                renderPdfPage(currentPageNum);
+                                if (pdfPageControls) pdfPageControls.classList.remove('hidden-content');
+                                if (translateCurrentPageBtn) translateCurrentPageBtn.classList.remove('hidden-content');
+                                if (quotaWarning) quotaWarning.classList.remove('hidden-content');
+                                if (translatedDocumentContainer) translatedDocumentContainer.classList.remove('hidden-content');
+                                updateStatus('success-text', `Đã tải file PDF "${fileName}" từ IndexedDB và hiển thị.`);
+                            }
+                        } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                            if (typeof window.mammoth === 'undefined') {
+                                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi: Thư viện mammoth.js chưa được tải.</p>`;
+                                updateStatus('error-text', `Lỗi: Thư viện mammoth.js chưa được tải.`);
+                            } else {
+                                try {
+                                    const result = await window.mammoth.convertToHtml({arrayBuffer: arrayBuffer});
+                                    convertedHtmlForDocx = result.value;
+                                    plainTextContent = convertedHtmlForDocx.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                                    if (originalDocumentViewer) originalDocumentViewer.innerHTML = convertedHtmlForDocx;
+                                    if (translatedDocumentContainer) translatedDocumentContainer.classList.add('hidden-content'); 
+                                    if (pdfPageControls) pdfPageControls.classList.add('hidden-content'); 
+                                    if (translateCurrentPageBtn) translateCurrentPageBtn.classList.add('hidden-content'); 
+                                    if (quotaWarning) quotaWarning.classList.add('hidden-content'); 
+                                    updateStatus('success-text', `Đã tải file DOCX "${fileName}" từ IndexedDB và hiển thị.`);
+
+                                    if (result.messages.length > 0) {
+                                        console.warn("Mammoth.js conversion warnings/errors:", result.messages);
+                                    }
+
+                                } catch (mammothError) {
+                                    console.error("Lỗi khi chuyển đổi DOCX từ IndexedDB:", mammothError);
+                                    if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}</p>`;
+                                    plainTextContent = `Lỗi khi xử lý DOCX từ IndexedDB.`;
+                                    updateStatus('error-text', `Lỗi khi xử lý DOCX từ IndexedDB: ${mammothError.message}.`);
+                                }
+                            }
+                        } else {
+                            if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Định dạng file không được hỗ trợ: ${fileType}</p>`;
+                            plainTextContent = `Định dạng file không được hỗ trợ.`;
+                            updateStatus('error-text', `Lỗi: Định dạng file không được hỗ trợ "${fileType}".`);
+                        }
+                        
+                        currentDocumentTextContent = plainTextContent;
+                        if (fileNameDisplay) fileNameDisplay.textContent = `Đang xem: ${fileName}`;
+                        console.log("Document content loaded from IndexedDB and stored for AI context. Length:", currentDocumentTextContent.length);
+                    };
+                    blobReader.readAsArrayBuffer(fileBlob); 
+
+                };
+
+                request.onerror = (event) => {
+                    console.error("Error retrieving file from IndexedDB:", event.target.errorCode);
+                    if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi khi tải file từ IndexedDB: ${event.target.errorCode}</p>`;
+                    updateStatus('error-text', `Lỗi khi tải file từ IndexedDB.`);
+                };
+            } catch (error) {
+                console.error("Lỗi tải file từ IndexedDB:", error);
+                if (originalDocumentViewer) originalDocumentViewer.innerHTML = `<p class="text-red-600 font-semibold">Lỗi tải file từ IndexedDB: ${error.message}</p>`;
+                updateStatus('error-text', `Lỗi tải file từ IndexedDB: ${error.message}`);
+            }
+        }
+
+
+        // ===============================================
+        // AI Interaction Logic
+        // ===============================================
+        
+        async function callGeminiAPI(aiPrompt, contextText = "", targetViewer = responseContainer) { 
+            if (!model) {
+                updateStatus('error-text', "Mô hình AI chưa được khởi tạo. Vui lòng kiểm tra console để biết lỗi.");
+                return;
+            }
+            if (!auth.currentUser) { 
+                updateStatus('error-text', 'Vui lòng đăng nhập để sử dụng tính năng AI.', authStatus);
+                return;
+            }
+            if (!currentDocumentTextContent && !selectedTextForAI && !currentPageTextContent) { 
+                 updateStatus('error-text', 'Vui lòng tải lên một tài liệu hoặc chọn văn bản để tương tác với AI.');
+                 return;
+            }
+
+            if (!aiPrompt.trim()) {
+                updateStatus('error-text', "Vui lòng nhập lời nhắc!");
+                return;
+            }
+
+            let fullPrompt = aiPrompt.trim();
+            if (contextText) {
+                fullPrompt = `Sử dụng nội dung sau làm ngữ cảnh để trả lời yêu cầu của tôi. Nếu không đủ thông tin, hãy cho biết:
+---
+Nội dung: ${contextText}
+---
+Yêu cầu của tôi: ${aiPrompt}`;
+            }
+
+            if (targetViewer) targetViewer.innerHTML = '<div class="large-spinner mx-auto my-4"></div>'; 
+            if (targetViewer) {
+                targetViewer.classList.add('bg-gray-100'); 
+                targetViewer.classList.remove('bg-gray-50'); 
+            }
+            
+            if (targetViewer === responseContainer) {
+                if (buttonText) buttonText.textContent = 'Đang gửi...';
+                if (buttonSpinner) buttonSpinner.classList.remove('hidden');
+                if (sendPromptButton) sendPromptButton.disabled = true;
+                if (promptInput) promptInput.disabled = true; 
+                if (explainSelectedBtn) explainSelectedBtn.disabled = true;
+                if (summarizeSelectedBtn) summarizeSelectedBtn.disabled = true;
+                if (expandSelectedBtn) expandSelectedBtn.disabled = true;
+            }
+            updateStatus('info-text', "Đang gửi yêu cầu đến Gemini...");
+
+
+            console.log("Sending prompt to Gemini:", fullPrompt);
+
+            try {
+                const result = await model.generateContent(fullPrompt);
+                const response = result.response;
+                const text = response.text();
+                
                 if ((targetViewer === translatedDocumentViewer || targetViewer === responseContainer) && typeof marked !== 'undefined') {
                     targetViewer.innerHTML = marked.parse(text); 
                 } else if (targetViewer) {
@@ -1548,7 +2642,7 @@ Nội dung: ${currentPageTextContent}
 
         if (toggleAiSidebarBtn) toggleAiSidebarBtn.addEventListener('click', openAiSidebar);
         if (closeAiSidebarBtn) closeAiSidebarBtn.addEventListener('click', closeAiSidebar);
-        if (aiSidebarBackdrop) aiSidebarBackdrop.addEventListener('click', closeAiSidebar); // Close sidebar when clicking backdrop
+        if (aiSidebarBackdrop) aiSidebarBackdrop.addEventListener('click', closeAiSidebar); 
     </script>
 </body>
 </html>
