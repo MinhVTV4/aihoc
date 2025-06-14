@@ -183,6 +183,109 @@
             font-size: 0.75rem;
             color: #718096; /* gray-600 */
         }
+        .saved-file-item .delete-btn {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            line-height: 1;
+            margin-left: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        .saved-file-item .delete-btn:hover {
+            background-color: #dc2626; /* red-600 */
+        }
+
+        /* Style for AI history items */
+        .ai-history-item {
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #e6fffa; /* teal-50 */
+            border: 1px solid #b2f5ea; /* teal-200 */
+            transition: background-color 0.2s ease-in-out;
+            margin-bottom: 0.5rem;
+            position: relative; /* For delete button */
+        }
+        .ai-history-item:hover {
+            background-color: #b2f5ea; /* teal-200 */
+        }
+        .ai-history-item .prompt-summary {
+            font-weight: 500;
+            color: #2d3748; /* gray-800 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 2rem; /* Make space for delete button */
+        }
+        .ai-history-item .timestamp {
+            font-size: 0.75rem;
+            color: #4a5568; /* gray-700 */
+            text-align: right;
+            margin-top: 0.25rem;
+        }
+        .ai-history-item .delete-btn {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            line-height: 1;
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        .ai-history-item .delete-btn:hover {
+            background-color: #dc2626; /* red-600 */
+        }
+
+        /* Modal Styles */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .modal-buttons button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .modal-buttons .confirm-btn {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+        }
+        .modal-buttons .confirm-btn:hover {
+            background-color: #dc2626; /* red-600 */
+        }
+        .modal-buttons .cancel-btn {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #374151; /* gray-800 */
+        }
+        .modal-buttons .cancel-btn:hover {
+            background-color: #d1d5db; /* gray-300 */
+        }
     </style>
     <!-- Thư viện PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -300,6 +403,12 @@
         <div id="responseContainer" class="min-h-[120px] p-4 border border-gray-300 bg-gray-50 rounded-md text-sm text-gray-700 flex items-center justify-center relative overflow-auto">
             Chưa có phản hồi...
         </div>
+
+        <!-- NEW: AI History Section -->
+        <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Lịch sử tương tác AI:</h4>
+        <div id="aiHistoryList" class="flex flex-col gap-2 border border-gray-200 rounded-md p-2 max-h-60 overflow-y-auto bg-gray-50">
+            <p class="text-sm text-gray-500 text-center py-4">Đang tải lịch sử...</p>
+        </div>
     </div>
 
     <!-- AI Sidebar Toggle Button (Fixed position) -->
@@ -309,6 +418,17 @@
 
     <!-- Backdrop for AI Sidebar (Hidden by default) -->
     <div id="aiSidebarBackdrop" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden-content"></div>
+
+    <!-- Confirmation Modal (Hidden by default) -->
+    <div id="confirmationModal" class="modal-backdrop hidden-content">
+        <div class="modal-content">
+            <p class="text-lg font-semibold mb-4" id="modalMessage">Bạn có chắc chắn muốn xóa mục này?</p>
+            <div class="modal-buttons">
+                <button id="confirmDeleteBtn" class="confirm-btn">Xóa</button>
+                <button id="cancelDeleteBtn" class="cancel-btn">Hủy</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase SDKs -->
     <script type="module">
@@ -329,7 +449,9 @@
             where, 
             orderBy, 
             onSnapshot,
-            serverTimestamp 
+            serverTimestamp,
+            deleteDoc, // NEW: Import deleteDoc
+            doc as firestoreDoc // Rename doc to firestoreDoc to avoid conflict with IndexedDB doc
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
         import { getAI, getGenerativeModel, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-ai.js";
 
@@ -378,7 +500,7 @@
         let promptInput = document.getElementById('promptInput');
         let sendPromptButton = document.getElementById('sendPromptButton');
         let buttonText = document.getElementById('buttonText');
-        let buttonSpinner = document.getElementById('buttonSpinner');
+        let buttonSpinner = document.getElementById('spinner'); // Corrected ID to 'spinner' from 'buttonSpinner' as per HTML
         let responseContainer = document.getElementById('responseContainer');
         let statusMessage = document.getElementById('statusMessage');
         let savedFilesList = document.getElementById('savedFilesList'); 
@@ -395,21 +517,33 @@
         let translateCurrentPageBtn = document.getElementById('translateCurrentPageBtn'); 
         let quotaWarning = document.getElementById('quotaWarning'); 
 
-        // NEW: Sidebar toggle elements
+        // Sidebar toggle elements
         let aiSidebar = document.getElementById('aiSidebar');
         let closeAiSidebarBtn = document.getElementById('closeAiSidebarBtn');
         let toggleAiSidebarBtn = document.getElementById('toggleAiSidebarBtn');
         let aiSidebarBackdrop = document.getElementById('aiSidebarBackdrop');
 
+        // AI History Elements
+        let aiHistoryList = document.getElementById('aiHistoryList');
+
+        // NEW: Modal elements
+        let confirmationModal = document.getElementById('confirmationModal');
+        let modalMessage = document.getElementById('modalMessage');
+        let confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        let cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
 
         let currentDocumentTextContent = ""; 
         let currentPageTextContent = ""; 
         let selectedTextForAI = ""; 
-        let currentFileId = null; 
+        let currentFileId = null; // This will now be IndexedDB key for files
 
         let pdfDocument = null; 
         let currentPageNum = 1;
         let totalPages = 1;
+
+        // Variables for confirmation modal callback
+        let confirmAction = null; // Function to execute on confirmation
+
 
         /**
          * Hàm cập nhật trạng thái hiển thị trên giao diện.
@@ -419,10 +553,9 @@
             if (!targetElement || !(targetElement instanceof HTMLElement)) {
                 if (targetElement === fileNameDisplay) targetElement = document.getElementById('fileNameDisplay');
                 else if (targetElement === statusMessage) targetElement = document.getElementById('statusMessage');
-                // Add more re-fetches for other critical elements if needed
             }
 
-            if (targetElement) { // Ensure element is not null before setting properties
+            if (targetElement) { 
                 targetElement.className = `text-sm font-semibold text-center mt-2 ${
                     type === 'success-text' ? 'text-green-600' : 
                     type === 'error-text' ? 'text-red-600' : 
@@ -485,6 +618,39 @@
 
 
         // ===============================================
+        // Confirmation Modal Logic
+        // ===============================================
+        function showConfirmationModal(message, onConfirm) {
+            if (confirmationModal) confirmationModal.classList.remove('hidden-content');
+            if (modalMessage) modalMessage.textContent = message;
+            confirmAction = onConfirm; // Store the function to call on confirm
+        }
+
+        function hideConfirmationModal() {
+            if (confirmationModal) confirmationModal.classList.add('hidden-content');
+            confirmAction = null; // Clear the stored function
+        }
+
+        if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', () => {
+            if (confirmAction) {
+                confirmAction(); // Execute the stored action
+            }
+            hideConfirmationModal();
+        });
+
+        if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', () => {
+            hideConfirmationModal();
+        });
+
+        if (confirmationModal) confirmationModal.addEventListener('click', (event) => {
+            // Close modal if click outside the content
+            if (event.target === confirmationModal) {
+                hideConfirmationModal();
+            }
+        });
+
+
+        // ===============================================
         // Firebase Authentication Logic & Data Loading
         // ===============================================
 
@@ -498,11 +664,11 @@
                 if (authForm) authForm.classList.add('hidden-content');
                 if (mainContent) mainContent.classList.remove('hidden-content');
                 if (logoutBtn) logoutBtn.classList.remove('hidden-content');
-                if (toggleAiSidebarBtn) toggleAiSidebarBtn.classList.remove('hidden-content'); // Show AI toggle button on login
+                if (toggleAiSidebarBtn) toggleAiSidebarBtn.classList.remove('hidden-content'); 
                 console.log("User logged in:", user.email, "UID:", currentUserId);
                 
-                // Load user's saved files from IndexedDB
                 loadSavedFilesFromIndexedDB();
+                loadAiHistory(currentUserId);
 
             } else {
                 currentUserId = null;
@@ -512,8 +678,8 @@
                 if (authForm) authForm.classList.remove('hidden-content');
                 if (mainContent) mainContent.classList.add('hidden-content');
                 if (logoutBtn) logoutBtn.classList.add('hidden-content');
-                if (toggleAiSidebarBtn) toggleAiSidebarBtn.classList.add('hidden-content'); // Hide AI toggle button on logout
-                closeAiSidebar(); // Close sidebar if open on logout
+                if (toggleAiSidebarBtn) toggleAiSidebarBtn.classList.add('hidden-content'); 
+                closeAiSidebar(); 
                 console.log("User logged out.");
                 
                 if (originalDocumentViewer) originalDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
@@ -526,6 +692,7 @@
                 currentFileId = null; 
                 if (selectionActionButtons) selectionActionButtons.classList.remove('active'); 
                 if (savedFilesList) savedFilesList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Đăng nhập để xem tài liệu đã lưu.</p>'; 
+                if (aiHistoryList) aiHistoryList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Đăng nhập để xem lịch sử AI.</p>'; 
                 if (pdfPageControls) pdfPageControls.classList.add('hidden-content'); 
                 if (translateCurrentPageBtn) translateCurrentPageBtn.classList.add('hidden-content'); 
                 if (quotaWarning) quotaWarning.classList.add('hidden-content'); 
@@ -592,7 +759,91 @@
         });
 
         // ===============================================
-        // IndexedDB: Save and Load Files (Local Storage)
+        // Firestore: Load AI Interaction History & Delete
+        // ===============================================
+
+        function loadAiHistory(userId) {
+            if (!userId) {
+                console.warn("Cannot load AI history: User ID is null.");
+                if (aiHistoryList) aiHistoryList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Đăng nhập để xem lịch sử AI.</p>';
+                return;
+            }
+
+            const aiHistoryCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/ai_interactions`);
+            const q = query(aiHistoryCollectionRef, orderBy('timestamp', 'desc'));
+
+            onSnapshot(q, (snapshot) => {
+                if (aiHistoryList) aiHistoryList.innerHTML = '';
+                if (snapshot.empty) {
+                    if (aiHistoryList) aiHistoryList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Bạn chưa có tương tác AI nào.</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const historyData = doc.data();
+                    const historyId = doc.id; // Get Firestore document ID for deletion
+
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'ai-history-item';
+                    
+                    const date = historyData.timestamp ? new Date(historyData.timestamp.toDate()) : new Date();
+                    const formattedDate = date.toLocaleDateString('vi-VN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                    historyItem.innerHTML = `
+                        <p class="prompt-summary">Q: ${historyData.prompt.substring(0, 50)}...</p>
+                        <p class="timestamp">${formattedDate}</p>
+                        <button class="delete-btn" data-id="${historyId}" data-type="ai-history"><i class="fas fa-trash-alt"></i></button>
+                    `;
+                    historyItem.addEventListener('click', (event) => {
+                        // Prevent click on item if delete button was clicked
+                        if (event.target.closest('.delete-btn')) {
+                            return;
+                        }
+                        if (promptInput) promptInput.value = historyData.prompt;
+                        if (responseContainer) responseContainer.innerText = historyData.response; // Use innerText for history display
+                        updateStatus('info-text', `Đang xem lại lịch sử AI (ID: ${historyId}).`);
+                        openAiSidebar(); 
+                    });
+                    if (aiHistoryList) aiHistoryList.appendChild(historyItem);
+                });
+                console.log(`Loaded ${snapshot.size} AI interactions for user ${userId}.`);
+
+                // Attach delete event listeners after all items are rendered
+                aiHistoryList.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const idToDelete = event.currentTarget.dataset.id;
+                        showConfirmationModal('Bạn có chắc chắn muốn xóa lịch sử tương tác AI này?', () => deleteAiHistory(idToDelete));
+                    });
+                });
+
+            }, (error) => {
+                console.error("Error loading AI history:", error);
+                if (aiHistoryList) aiHistoryList.innerHTML = '<p class="text-sm text-red-600 text-center py-4">Lỗi khi tải lịch sử AI.</p>';
+            });
+        }
+
+        /**
+         * Deletes an AI interaction from Firestore.
+         * @param {string} historyId The Firestore document ID of the AI interaction.
+         */
+        async function deleteAiHistory(historyId) {
+            if (!currentUserId) {
+                updateStatus('error-text', 'Không thể xóa lịch sử AI: Người dùng chưa đăng nhập.');
+                return;
+            }
+            try {
+                await deleteDoc(firestoreDoc(db, `artifacts/${appId}/users/${currentUserId}/ai_interactions`, historyId));
+                console.log("AI history deleted from Firestore:", historyId);
+                updateStatus('success-text', 'Đã xóa lịch sử tương tác AI.');
+            } catch (error) {
+                console.error("Error deleting AI history:", error);
+                updateStatus('error-text', `Lỗi khi xóa lịch sử AI: ${error.message}.`);
+            }
+        }
+
+
+        // ===============================================
+        // IndexedDB: Save and Load Files (Local Storage) & Delete
         // ===============================================
 
         /**
@@ -632,19 +883,83 @@
                     fileItem.innerHTML = `
                         <span class="file-name">${fileData.fileName}</span>
                         <span class="file-date">${formattedDate}</span>
+                        <button class="delete-btn" data-id="${fileData.id}" data-type="file"><i class="fas fa-trash-alt"></i></button>
                     `;
                     
-                    fileItem.addEventListener('click', () => loadFileFromIndexedDBAndDisplay(fileData.id));
+                    fileItem.addEventListener('click', (event) => {
+                        // Prevent click on item if delete button was clicked
+                        if (event.target.closest('.delete-btn')) {
+                            return;
+                        }
+                        loadFileFromIndexedDBAndDisplay(fileData.id);
+                    });
                     if (savedFilesList) savedFilesList.appendChild(fileItem);
                 });
                 console.log(`Loaded ${files.length} saved files from IndexedDB.`);
-            };
 
-            request.onerror = (event) => {
-                console.error("Error loading files from IndexedDB:", event.target.errorCode);
+                // Attach delete event listeners after all items are rendered
+                savedFilesList.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const idToDelete = parseInt(event.currentTarget.dataset.id); // IndexedDB keys are numbers
+                        showConfirmationModal('Bạn có chắc chắn muốn xóa tài liệu này khỏi bộ nhớ cục bộ?', () => deleteFileFromIndexedDB(idToDelete));
+                    });
+                });
+
+            }, (error) => {
+                console.error("Error loading files from IndexedDB:", error.target.errorCode);
                 if (savedFilesList) savedFilesList.innerHTML = '<p class="text-sm text-red-600 text-center py-4">Lỗi khi tải tài liệu đã lưu cục bộ.</p>';
             };
         }
+
+        /**
+         * Deletes a file from IndexedDB.
+         * @param {number} fileId The IndexedDB key of the file to delete.
+         */
+        async function deleteFileFromIndexedDB(fileId) {
+            if (!indexedDB_db) {
+                await openDatabase();
+            }
+            if (!indexedDB_db) {
+                updateStatus('error-text', 'Không thể xóa file: Không thể truy cập IndexedDB.');
+                return;
+            }
+
+            try {
+                const transaction = indexedDB_db.transaction([FILE_STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(FILE_STORE_NAME);
+                const request = objectStore.delete(fileId);
+
+                request.onsuccess = () => {
+                    console.log("File deleted from IndexedDB:", fileId);
+                    updateStatus('success-text', 'Đã xóa tài liệu khỏi bộ nhớ cục bộ.');
+                    loadSavedFilesFromIndexedDB(); // Refresh the list
+                    // Clear viewer if the deleted file was currently displayed
+                    if (currentFileId === fileId) {
+                        if (originalDocumentViewer) originalDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Tải lên một file PDF hoặc DOCX để bắt đầu.</p>';
+                        if (translatedDocumentContainer) translatedDocumentContainer.classList.add('hidden-content');
+                        if (translatedDocumentViewer) translatedDocumentViewer.innerHTML = '<p class="text-center text-gray-500 py-10">Bản dịch sẽ xuất hiện ở đây.</p>';
+                        currentDocumentTextContent = "";
+                        currentPageTextContent = "";
+                        currentFileId = null;
+                        pdfDocument = null;
+                        currentPageNum = 1;
+                        totalPages = 1;
+                        if (pdfPageControls) pdfPageControls.classList.add('hidden-content');
+                        if (translateCurrentPageBtn) translateCurrentPageBtn.classList.add('hidden-content');
+                        if (quotaWarning) quotaWarning.classList.add('hidden-content');
+                    }
+                };
+
+                request.onerror = (event) => {
+                    console.error("Error deleting file from IndexedDB:", event.target.errorCode, event.target.error);
+                    updateStatus('error-text', `Lỗi khi xóa file cục bộ: ${event.target.error.message || event.target.errorCode}.`);
+                };
+            } catch (error) {
+                console.error("Error during IndexedDB delete transaction:", error);
+                updateStatus('error-text', `Lỗi khi xóa file cục bộ: ${error.message}.`);
+            }
+        }
+
 
         /**
          * Loads the content of a saved file from IndexedDB and displays it.
@@ -836,8 +1151,9 @@ Yêu cầu của tôi: ${aiPrompt}`;
                 const response = result.response;
                 const text = response.text();
                 
-                // NEW: Use marked.js if targetViewer is translatedDocumentViewer
-                if (targetViewer === translatedDocumentViewer && typeof marked !== 'undefined') {
+                // NEW: Use marked.js if targetViewer is translatedDocumentViewer OR responseContainer
+                // For responseContainer, it should ideally be plain text, but for consistency if it's the target, let's process Markdown too
+                if ((targetViewer === translatedDocumentViewer || targetViewer === responseContainer) && typeof marked !== 'undefined') {
                     targetViewer.innerHTML = marked.parse(text); 
                 } else if (targetViewer) {
                     targetViewer.innerText = text; 
